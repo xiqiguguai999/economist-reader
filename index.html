@@ -319,6 +319,28 @@
   .vocab-src{font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--faint);margin-top:10px}
   .vocab-empty{padding:60px 20px;text-align:center;color:var(--muted);font-size:17px}
 
+  /* ---------- Takeaway points（大脑分析 + 生词） ---------- */
+  .takeaway-section-title{
+    font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--accent);margin:26px 0 12px;font-weight:700;
+  }
+  .takeaway-section-title:first-child{margin-top:0}
+  .takeaway-item{
+    background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:16px 18px;margin-bottom:14px;
+  }
+  .takeaway-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+  .takeaway-head .p{font-size:19px;font-weight:700;line-height:1.45;color:var(--ink)}
+  .takeaway-head .del{flex-shrink:0;color:var(--muted);font-size:20px;padding:2px 8px;cursor:pointer;opacity:.5}
+  .takeaway-head .del:hover{opacity:1;color:var(--ink)}
+  .takeaway-src{font-family:var(--mono);font-size:11px;color:var(--faint);margin-bottom:10px;letter-spacing:.04em}
+  .takeaway-body{font-size:16px;line-height:1.75;color:#3a2f22}
+  .takeaway-body h4{margin:14px 0 6px;font-size:17px;font-weight:750;color:var(--ink)}
+  .takeaway-body p{margin:0 0 8px}
+  .takeaway-body ul{margin:6px 0 10px;padding-left:20px}
+  .takeaway-body li{margin-bottom:4px}
+  .takeaway-body strong{color:var(--ink)}
+
   /* ---------- 经济学人板块 ---------- */
   .eco-wrap{max-width:720px;margin:0 auto;padding:18px 20px 90px}
   .eco-section-title{
@@ -553,7 +575,7 @@
       <span class="tagline">The Economist · 随手翻</span>
     </div>
     <div class="top-actions">
-      <button class="btn ghost" id="moduleVocab">生词复习</button>
+      <button class="btn ghost" id="moduleVocab">Takeaway points</button>
       <button class="btn ghost" id="shuffleBtn">⟳ 随手翻</button>
       <button class="btn primary" id="importBtn">＋ 导入</button>
     </div>
@@ -622,11 +644,12 @@
   </article>
 </main>
 
-<!-- ============ VOCAB (生词本) ============ -->
+<!-- ============ TAKEAWAY POINTS（大脑分析 + 生词） ============ -->
 <main class="vocab-view" id="vocabView">
   <header class="reader-bar">
     <button class="btn ghost" id="vocabBack">← 返回</button>
     <div class="reader-controls">
+      <span style="font-family:var(--mono);font-size:13px;letter-spacing:.06em;color:var(--ink);font-weight:700">Takeaway points</span>
       <span style="font-family:var(--mono);font-size:12px;letter-spacing:.08em;color:var(--muted)" id="vocabCount"></span>
     </div>
   </header>
@@ -707,6 +730,7 @@
   var KEY_ARTICLES = "flip.articles.v1";
   var KEY_SETTINGS = "flip.settings.v1";
   var KEY_VOCAB = "flip.vocab.v1";
+  var KEY_TAKEAWAYS = "flip.takeaways.v1";
   var PDFJS_VERSION = "3.11.174";
   var WPM = 220; // 英文阅读速度（词/分钟）
 
@@ -714,6 +738,7 @@
     articles: load(KEY_ARTICLES, []),
     settings: load(KEY_SETTINGS, { fontSize:17, serif:false, dark:false }),
     vocab: load(KEY_VOCAB, []),
+    takeaways: load(KEY_TAKEAWAYS, []),
     filter: "all",
     query: "",
     currentId: null,
@@ -747,6 +772,10 @@
   }
   function saveVocab(){
     try{ localStorage.setItem(KEY_VOCAB, JSON.stringify(state.vocab)); }
+    catch(e){}
+  }
+  function saveTakeaways(){
+    try{ localStorage.setItem(KEY_TAKEAWAYS, JSON.stringify(state.takeaways)); }
     catch(e){}
   }
   function injectBuiltin(){
@@ -1661,7 +1690,15 @@
     if(!text) return;
     parsePhrase(text);
   }
+  function showParse(content){
+    $("parseBody").innerHTML = renderText(content);
+    $("parsePanel").classList.add("show");
+  }
   function parsePhrase(text){
+    // 查过的句子直接用缓存，不再调用 API（忽略多余空白差异）
+    var norm = function(s){ return String(s || "").replace(/\s+/g, " ").trim(); };
+    var hit = state.takeaways.find(function(t){ return norm(t.phrase) === norm(text); });
+    if(hit){ showParse(hit.analysis); return; }
     var apiKey = getParseKey();
     if(!apiKey){ openKeyModal(); toast("请先填写 API Key"); return; }
     $("parseBody").innerHTML = '<div class="dict-loading">解析中 … 可能需要 5–40 秒，请稍候</div>';
@@ -1700,7 +1737,10 @@
       clearTimeout(timer);
       var content = (d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) || "";
       if(!content.trim()) throw new Error("空结果");
-      $("parseBody").innerHTML = renderText(content);
+      var a = currentArticle();
+      state.takeaways.unshift({ id: uid(), phrase: text, analysis: content, articleTitle: a ? a.title : "", createdAt: Date.now() });
+      saveTakeaways();
+      showParse(content);
     })
     .catch(function(e){
       clearTimeout(timer);
@@ -1819,31 +1859,59 @@
   }
   function renderVocab(){
     var el = $("vocabList");
-    $("vocabCount").textContent = state.vocab.length + " 词";
-    if(!state.vocab.length){
-      el.innerHTML = '<div class="vocab-empty">还没有生词。阅读时选中不认识的单词，点「划线」就会收进这里；点「查字典」看释义。</div>';
+    var n = state.takeaways.length, m = state.vocab.length;
+    $("vocabCount").textContent = n + " 个解析 · " + m + " 个生词";
+    if(!n && !m){
+      el.innerHTML = '<div class="vocab-empty">还没有内容。读文章时：划选短语 →「🧠 解析短语」会存到这里；划选单词 →「划线」会存进生词。</div>';
       return;
     }
     el.innerHTML = "";
-    state.vocab.forEach(function(v, idx){
-      var item = document.createElement("div");
-      item.className = "vocab-item";
-      item.setAttribute("role", "button");
-      item.setAttribute("tabindex", "0");
-      var html = '';
-      html += '<div class="vocab-head"><span class="w">' + esc(v.word) + '</span><span class="del" data-i="' + idx + '">✕</span></div>';
-      if(v.def) html += '<div class="vocab-def">' + esc(v.def) + '</div>';
-      if(v.context) html += '<div class="vocab-example">' + esc(v.context) + '</div>';
-      if(v.articleTitle) html += '<div class="vocab-src">' + esc(v.articleTitle) + '</div>';
-      item.innerHTML = html;
-      item.addEventListener("click", function(e){
-        if(e.target && e.target.getAttribute && e.target.getAttribute("data-i") !== null){
-          state.vocab.splice(idx, 1); saveVocab(); renderVocab(); return;
-        }
-        lookupWord(v.word);
+    // ===== 1. 大脑分析（短语解析记录，已缓存的直接看） =====
+    if(n){
+      var t1 = document.createElement("div");
+      t1.className = "takeaway-section-title";
+      t1.textContent = "🧠 大脑分析";
+      el.appendChild(t1);
+      state.takeaways.forEach(function(t, idx){
+        var item = document.createElement("div");
+        item.className = "takeaway-item";
+        var head = '<div class="takeaway-head"><span class="p">' + esc(t.phrase) + '</span><span class="del" data-ti="' + idx + '">✕</span></div>';
+        var src = t.articleTitle ? '<div class="takeaway-src">' + esc(t.articleTitle) + '</div>' : '';
+        item.innerHTML = head + src + '<div class="takeaway-body">' + renderText(t.analysis) + '</div>';
+        var del = item.querySelector(".del");
+        if(del) del.addEventListener("click", function(e){
+          e.stopPropagation();
+          state.takeaways.splice(idx, 1); saveTakeaways(); renderVocab();
+        });
+        el.appendChild(item);
       });
-      el.appendChild(item);
-    });
+    }
+    // ===== 2. 生词 =====
+    if(m){
+      var t2 = document.createElement("div");
+      t2.className = "takeaway-section-title";
+      t2.textContent = "📝 生词";
+      el.appendChild(t2);
+      state.vocab.forEach(function(v, idx){
+        var item = document.createElement("div");
+        item.className = "vocab-item";
+        item.setAttribute("role", "button");
+        item.setAttribute("tabindex", "0");
+        var html = '';
+        html += '<div class="vocab-head"><span class="w">' + esc(v.word) + '</span><span class="del" data-i="' + idx + '">✕</span></div>';
+        if(v.def) html += '<div class="vocab-def">' + esc(v.def) + '</div>';
+        if(v.context) html += '<div class="vocab-example">' + esc(v.context) + '</div>';
+        if(v.articleTitle) html += '<div class="vocab-src">' + esc(v.articleTitle) + '</div>';
+        item.innerHTML = html;
+        item.addEventListener("click", function(e){
+          if(e.target && e.target.getAttribute && e.target.getAttribute("data-i") !== null){
+            state.vocab.splice(idx, 1); saveVocab(); renderVocab(); return;
+          }
+          lookupWord(v.word);
+        });
+        el.appendChild(item);
+      });
+    }
   }
 
   /* ================= 经济学人板块 ================= */
