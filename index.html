@@ -704,6 +704,11 @@
     state.light = data.light || null;
     state.expressions = parseExpressions(data.vocab ? data.vocab.text : "");
     if(cur === VER) return;
+    // 保存旧文章的划线（bodyHtml 含 data-hl 标记），重新注入后恢复
+    var oldBody = {};
+    state.articles.forEach(function(a){
+      if(a.bodyHtml && a.bodyHtml.indexOf('data-hl') !== -1) oldBody[a.id] = a.bodyHtml;
+    });
     // 清理旧的内置文章（含旧版 eco/cn/as/br 和中文精读）
     state.articles = state.articles.filter(function(a){
       return !/^(builtin-leaders|builtin-vocab|eco-|cn-|as-|br-)/.test(a.id);
@@ -725,12 +730,14 @@
         var a = arts[ai];
         if(!state.articles.some(function(x){ return x.id === a.id; })){
           var body = cleanArticleText(a.full);
-          state.articles.unshift({
+          var art = {
             id: a.id, title: a.title, source: "经济学人 · " + sec.label,
             text: body, createdAt: Date.now(), lastReadAt: null,
             progress: 0, finished: false, words: wordCount(body),
             group: "economist", section: sec.label, order: ai
-          });
+          };
+          if(oldBody[a.id]) art.bodyHtml = oldBody[a.id];
+          state.articles.unshift(art);
         }
       }
     }
@@ -1862,6 +1869,8 @@
   applySettings();
   injectBuiltin();
   render();
+  // 后台预加载柯林斯词典，查词秒出
+  setTimeout(function(){ loadDictCn(); }, 600);
   if(!storageOk){
     setTimeout(function(){
       toast("⚠️ 当前环境无法使用本地存储：文章只在本次打开时有效，建议用浏览器直接打开 http://127.0.0.1:8090/flip-reader.html");
