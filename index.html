@@ -37,7 +37,7 @@
     --line:rgba(236,236,232,.09);
   }
 
-  *{box-sizing:border-box;margin:0;padding:0}
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-touch-callout:none}
   html{-webkit-text-size-adjust:100%}
   body{
     background:var(--paper);
@@ -1780,6 +1780,9 @@
       t = t.parentNode;
     }
   });
+
+  // 屏蔽 iOS Safari 长按系统菜单（拷贝/查询/翻译），保留选字能力
+  document.addEventListener("contextmenu", function(e){ e.preventDefault(); });
 
   // 事件绑定
   $("lightCard").addEventListener("click", function(){
