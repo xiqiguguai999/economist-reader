@@ -202,14 +202,14 @@
   }
   #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-  /* ---------- 划线高亮 ---------- */
+  /* ---------- 划线高亮（荧光黄） ---------- */
   .hl{
-    background:rgba(215,26,27,.13);
-    border-bottom:2px solid var(--accent);
-    padding:0 1px;border-radius:2px;cursor:pointer;
+    background:#FFF176;
+    color:inherit;
+    padding:0 2px;border-radius:2px;cursor:pointer;
     -webkit-tap-highlight-color:transparent;
   }
-  body.dark .hl{background:rgba(229,72,77,.26)}
+  body.dark .hl{background:#8a7a2a;color:#fff}
 
   /* ---------- 选中浮动工具条 ---------- */
   #selToolbar{
@@ -1483,6 +1483,8 @@
         range.insertNode(mark);
       } catch(e2){ return null; }
     }
+    // 关键：清除选区，否则选区残留在 mark 上，第二次选词会异常
+    try { window.getSelection().removeAllRanges(); } catch(e){}
     var a = currentArticle();
     if(a){ a.bodyHtml = $("readerBody").innerHTML; save(); }
     return text;
@@ -1550,6 +1552,7 @@
     var ctx = state.lastContext || "";
     hideSelToolbar();
     state.lastSelText = ""; state.savedRange = null; state.lastContext = "";
+    try { window.getSelection().removeAllRanges(); } catch(e){}
     if(!text) return;
     var word = text.split(/\s+/)[0].replace(/^[^A-Za-z'-]+|[^A-Za-z'-]+$/g, "");
     if(!word){ toast("没识别出单词"); return; }
