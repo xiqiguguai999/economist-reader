@@ -492,7 +492,29 @@
   #library .cell-blurb{font-size:13px;color:var(--muted);line-height:1.55;margin-top:8px}
   #library .hero-title{font-size:25px;font-weight:750;line-height:1.3;color:var(--ink);letter-spacing:-.01em}
   #library .hero-summary{font-size:16px;color:var(--muted);line-height:1.65;margin-top:12px}
-  #library .hero-cta{font-size:13px;color:var(--accent);font-weight:600;margin-top:14px}
+  #library .hero-cta{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--accent);font-weight:600;margin-top:14px}
+  #library .hero-switch{color:var(--muted);font-weight:500;cursor:pointer;padding:4px 8px;border-radius:6px;font-size:12px}
+  #library .hero-switch:hover{color:var(--accent)}
+
+  /* 首页精选文章选择器 */
+  #featuredPicker{
+    position:fixed;inset:0;z-index:220;display:none;
+    align-items:flex-end;justify-content:center;background:rgba(0,0,0,.45);
+  }
+  #featuredPicker.show{display:flex}
+  .fp-card{
+    background:var(--paper);border-radius:16px 16px 0 0;width:100%;max-width:560px;
+    max-height:72vh;overflow:auto;padding:18px 18px 30px;
+  }
+  .fp-title{font-size:17px;font-weight:750;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+  .fp-title .x{cursor:pointer;color:var(--muted);font-size:20px;padding:2px 8px}
+  .fp-sec{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);margin:14px 0 4px}
+  .fp-item{display:flex;justify-content:space-between;gap:10px;padding:12px 10px;border-bottom:1px solid var(--line);cursor:pointer;border-radius:8px;align-items:center}
+  .fp-item:hover{background:var(--card)}
+  .fp-item .t{font-size:15px;line-height:1.4;color:var(--ink)}
+  .fp-item .s{font-family:var(--mono);font-size:10.5px;color:var(--faint);white-space:nowrap}
+  .fp-item.on{background:var(--card);border-left:3px solid var(--accent)}
+  .fp-item.done .t{color:var(--muted);text-decoration:line-through}
   #library .all-articles{display:flex;flex-direction:column}
   #library .aa-item{
     display:block;width:100%;text-align:left;cursor:pointer;
@@ -537,6 +559,12 @@
   #library .hook-btn:active{background:var(--card)}
   #library .hook-prompt{font-size:16px;color:var(--ink);margin-top:8px;line-height:1.5}
   #library .hook-empty{background:#ffffff;border:1px dashed var(--line);border-radius:12px;padding:20px;color:var(--muted);font-size:14px;line-height:1.6}
+  #library .hook-summary{font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--muted);margin-bottom:10px}
+  #library .hook-summary b{color:var(--accent)}
+  #library .hook-review{display:inline-block;font-family:var(--mono);font-size:11px;letter-spacing:.04em;padding:2px 8px;border-radius:999px;margin:0 0 10px}
+  #library .hook-review.due{background:#fdeaea;color:#c0392b}
+  #library .hook-review.next{background:#e6f4ec;color:#2e6b4f}
+  #library .hook-item.done{opacity:.72}
 
   /* 空状态 */
   #library .empty .hint{border:1px dashed var(--line);border-radius:10px}
@@ -601,10 +629,10 @@
       </div>
       <div class="home-cell hero" id="featuredCard" role="button" tabindex="0">
         <div class="hero-text">
-          <div class="cell-label">Leaders · 本期封面</div>
+          <div class="cell-label" id="featuredLabel">本期精选</div>
           <div class="hero-title" id="featuredTitle"></div>
           <div class="hero-summary" id="featuredIntro"></div>
-          <div class="hero-cta">读全文 →</div>
+          <div class="hero-cta"><span>读全文 →</span><span class="hero-switch" id="featuredSwitch">换一篇 ▾</span></div>
         </div>
         <img class="hero-cartoon" id="featuredCartoon" alt="cartoon">
       </div>
@@ -715,6 +743,14 @@
       <button id="keyClose" class="btn ghost">关闭</button>
     </div>
     <div class="key-note">Base URL 固定为 https://api.siliconflow.cn/v1；Key 只保存在本机浏览器。</div>
+  </div>
+</div>
+
+<!-- 首页精选文章选择器 -->
+<div id="featuredPicker">
+  <div class="fp-card">
+    <div class="fp-title"><span>换一篇精选</span><span class="x" id="fpClose">✕</span></div>
+    <div id="fpList"></div>
   </div>
 </div>
 
@@ -1234,15 +1270,62 @@
     renderHook();
   }
 
+  /* ---------- 首页精选文章（读完自动换 + 按标题选择） ---------- */
+  var FEATURED_KEY = "flip.featured.v1";
+  var CARTOONS = {
+    "eco-1": "vendor/cartoon-trump.jpg",
+    "eco-2": "vendor/cartoon-haiti.jpg",
+    "eco-3": "vendor/cartoon-cyber.jpg",
+    "eco-4": "vendor/cartoon-patients.jpg",
+    "eco-5": "vendor/cartoon-porn.jpg",
+    "cn-1": "vendor/cartoon-podcasts.jpg"
+  };
+  function getFeaturedId(){ try { return localStorage.getItem(FEATURED_KEY) || ""; } catch(e){ return ""; } }
+  function saveFeaturedId(id){ try { localStorage.setItem(FEATURED_KEY, id); } catch(e){} }
+  function firstSentence(text){
+    var s = String(text || "").replace(/\s+/g, " ").trim();
+    if(!s) return "";
+    var m = s.match(/^.{0,120}?[.!?](\s|$)/);
+    return (m ? m[0] : s.slice(0, 120)).trim();
+  }
+  function makeFeatured(a){
+    var builtin = state.featured;
+    var isBuiltin = builtin && builtin.id === a.id;
+    return {
+      id: a.id,
+      section: a.section || "",
+      title: a.title,
+      intro: isBuiltin && builtin.intro ? builtin.intro : firstSentence(a.text),
+      cartoon: CARTOONS[a.id] || (isBuiltin ? (builtin.cartoon || "") : "")
+    };
+  }
+  function featuredPool(){
+    return state.articles.filter(function(a){ return a.group === "economist"; });
+  }
+  function resolveFeatured(){
+    var pool = featuredPool();
+    if(!pool.length) return state.featured ? makeFeatured({ id: state.featured.id, title: state.featured.title, text: "", section: "Leaders" }) : null;
+    var chosen = null;
+    var id = getFeaturedId();
+    if(id) chosen = pool.find(function(a){ return a.id === id; }) || null;
+    // 指定的这篇还没读完 → 用它
+    if(chosen && !chosen.finished) return makeFeatured(chosen);
+    // 否则自动挑下一篇未读完的（按栏目/顺序）
+    var unread = pool.filter(function(a){ return !a.finished; });
+    if(unread.length) return makeFeatured(unread[0]);
+    // 全读完了 → 回到第一篇
+    return makeFeatured(pool[0]);
+  }
   function renderFeatured(){
-    var f = state.featured;
     var card = $("featuredCard");
     if(!card) return;
+    var f = resolveFeatured();
     if(!f){
       card.style.display = "none";
       return;
     }
     card.style.display = "flex";
+    if($("featuredLabel")) $("featuredLabel").textContent = (f.section || "Leaders") + " · 本期精选";
     $("featuredTitle").textContent = f.title || "";
     $("featuredIntro").textContent = f.intro || "";
     var img = $("featuredCartoon");
@@ -1250,6 +1333,41 @@
       if(f.cartoon){ img.src = f.cartoon; img.style.display = "block"; }
       else { img.style.display = "none"; }
     }
+  }
+  function openFeaturedPicker(){
+    renderFeaturedPicker();
+    $("featuredPicker").classList.add("show");
+  }
+  function closeFeaturedPicker(){ $("featuredPicker").classList.remove("show"); }
+  function renderFeaturedPicker(){
+    var el = $("fpList");
+    if(!el) return;
+    el.innerHTML = "";
+    var pool = featuredPool();
+    if(!pool.length){ el.innerHTML = '<div class="vocab-empty">暂无文章</div>'; return; }
+    var cur = resolveFeatured();
+    var sections = ["Leaders", "China", "Asia", "Briefing"];
+    sections.forEach(function(sec){
+      var arts = pool.filter(function(a){ return a.section === sec; });
+      if(!arts.length) return;
+      arts.sort(function(a,b){ return (a.order||0) - (b.order||0); });
+      var t = document.createElement("div");
+      t.className = "fp-sec";
+      t.textContent = sec;
+      el.appendChild(t);
+      arts.forEach(function(a){
+        var row = document.createElement("div");
+        row.className = "fp-item" + (cur && cur.id === a.id ? " on" : "") + (a.finished ? " done" : "");
+        row.innerHTML = '<span class="t">' + esc(a.title) + '</span><span class="s">' + (a.finished ? "已读完" : ((a.progress||0) > 0 ? Math.round(a.progress*100) + "%" : "未读")) + '</span>';
+        row.addEventListener("click", function(){
+          saveFeaturedId(a.id);
+          closeFeaturedPicker();
+          render();
+          toast("已切换精选：" + a.title);
+        });
+        el.appendChild(row);
+      });
+    });
   }
 
   function renderLight(){
@@ -1310,15 +1428,42 @@
       return w.charAt(0) + w.slice(1).replace(/[A-Za-z]/g, "＿");
     }).join(" ");
   }
+  /* ---------- 艾宾浩斯复习曲线 ---------- */
+  var EBB_DAYS = [1, 2, 4, 7, 15, 30]; // 天
+  function vocabDue(v){ return !v.nextReview || v.nextReview <= Date.now(); }
+  function markReviewed(v){
+    var st = Math.min((v.stage || 0) + 1, EBB_DAYS.length);
+    v.stage = st;
+    v.lastReview = Date.now();
+    var days = EBB_DAYS[Math.min(st - 1, EBB_DAYS.length - 1)];
+    v.nextReview = Date.now() + days * 86400000;
+    saveVocab();
+    return days;
+  }
+  function vocabReviewLabel(v){
+    if(vocabDue(v)) return "待复习";
+    var d = Math.max(1, Math.ceil((v.nextReview - Date.now()) / 86400000));
+    return "下次 " + d + " 天后";
+  }
   function renderHook(){
     var el = $("hookBody");
     if(!el) return;
-    var words = state.vocab.slice(0, 3);
-    if(!words.length){
+    var list = state.vocab.slice();
+    // 到期的排最前（越早到期越前）；已复习的排最后
+    list.sort(function(a,b){
+      var da = vocabDue(a) ? 0 : 1, db = vocabDue(b) ? 0 : 1;
+      if(da !== db) return da - db;
+      if(da === 1) return (a.nextReview||0) - (b.nextReview||0);
+      return (a.createdAt||0) - (b.createdAt||0);
+    });
+    var show = list.slice(0, 6);
+    if(!show.length){
       el.innerHTML = '<div class="hook-empty">读文章时选中不认识的词，点「划线」收藏，这里会自动生成「原文挖空」——回到原文句子，在空格里填出你收藏的表达。</div>';
       return;
     }
-    el.innerHTML = words.map(function(v){
+    var dueCount = list.filter(vocabDue).length;
+    var html = '<div class="hook-summary">待复习 <b>' + dueCount + '</b> 个 · 按艾宾浩斯曲线推送</div>';
+    html += show.map(function(v, i){
       var sentence = v.context || "";
       var word = v.word || "";
       var idx = sentence ? sentence.toLowerCase().indexOf(word.toLowerCase()) : -1;
@@ -1340,11 +1485,16 @@
       if(hintInner) body += '<div class="hook-hint">' + hintInner + '</div>';
       // 答案，初始隐藏
       body += '<div class="hook-answer">' + esc(word) + '</div>';
+      // 复习状态
+      body += '<div class="hook-review ' + (vocabDue(v) ? 'due' : 'next') + '">' + vocabReviewLabel(v) + '</div>';
       // 操作按钮
       body += '<div class="hook-actions"><button class="hook-btn" data-act="check">确认</button><button class="hook-btn" data-act="hint">提示</button><button class="hook-btn" data-act="answer">看答案</button></div>';
-      return '<div class="hook-item">' + body + '</div>';
+      return '<div class="hook-item" data-idx="' + i + '">' + body + '</div>';
     }).join('');
+    el.innerHTML = html;
     el.querySelectorAll(".hook-item").forEach(function(item){
+      var idx = Number(item.getAttribute("data-idx"));
+      var v = show[idx];
       var input = item.querySelector(".hook-input");
       var checkBtn = item.querySelector('[data-act="check"]');
       var hintBtn = item.querySelector('[data-act="hint"]');
@@ -1359,8 +1509,15 @@
           fb.textContent = "✓ 正确！";
           fb.className = "hook-feedback ok";
           input.disabled = true;
-          item.classList.add("solved");
+          item.classList.add("solved","done");
           if(checkBtn){ checkBtn.textContent = "✓"; checkBtn.disabled = true; }
+          if(v){
+            var days = markReviewed(v);
+            var tag = item.querySelector(".hook-review");
+            if(tag){ tag.className = "hook-review next"; tag.textContent = "✓ 已复习 · " + days + " 天后"; }
+          }
+          // 复习完成 → 自动移到最下方
+          setTimeout(function(){ el.appendChild(item); }, 700);
         } else {
           fb.textContent = "✗ 不对，再想想";
           fb.className = "hook-feedback bad";
@@ -2045,8 +2202,18 @@
   $("moduleVocab").addEventListener("click", openVocab);
   $("vocabBack").addEventListener("click", closeVocab);
   $("ecoBack").addEventListener("click", closeEco);
-  $("featuredCard").addEventListener("click", function(){
-    if(state.featured && state.featured.id) openReader(state.featured.id);
+  $("featuredCard").addEventListener("click", function(e){
+    if(e.target && (e.target.id === "featuredSwitch" || e.target.closest && e.target.closest("#featuredSwitch"))) return;
+    var f = resolveFeatured();
+    if(f && f.id) openReader(f.id);
+  });
+  $("featuredSwitch").addEventListener("click", function(e){
+    e.stopPropagation();
+    openFeaturedPicker();
+  });
+  $("fpClose").addEventListener("click", closeFeaturedPicker);
+  $("featuredPicker").addEventListener("click", function(e){
+    if(e.target === $("featuredPicker")) closeFeaturedPicker();
   });
   $("dictClose").addEventListener("click", closeDict);
   $("parseClose").addEventListener("click", closeParse);
