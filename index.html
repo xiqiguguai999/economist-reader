@@ -245,6 +245,37 @@
     padding:0 0 18px;
   }
   #dictPanel.show{transform:translateY(0)}
+  #parsePanel{
+    position:fixed;z-index:170;left:0;right:0;bottom:0;
+    background:var(--paper);border-top:2px solid var(--ink);
+    max-height:62vh;overflow:auto;
+    transform:translateY(105%);transition:transform .25s ease;
+    padding:0 0 18px;
+  }
+  #parsePanel.show{transform:translateY(0)}
+  #selToolbar #parseBtn{display:none}
+  #selToolbar #parseBtn.show{display:inline-flex}
+
+  /* API 设置弹窗 */
+  #keyModal{
+    position:fixed;inset:0;z-index:220;display:none;
+    align-items:center;justify-content:center;background:rgba(0,0,0,.45);padding:20px;
+  }
+  #keyModal.show{display:flex}
+  .key-card{
+    background:var(--paper);border-radius:14px;padding:22px 22px 18px;width:100%;max-width:420px;
+    box-shadow:0 12px 44px rgba(0,0,0,.32);
+  }
+  .key-title{font-size:18px;font-weight:750;letter-spacing:-.01em;margin-bottom:6px}
+  .key-label{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+  .key-card input{
+    width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:8px;
+    background:var(--card);color:var(--ink);font-size:15px;outline:none;
+  }
+  .key-card input:focus{border-color:var(--accent)}
+  .key-actions{display:flex;gap:8px;margin-top:18px}
+  .key-actions .btn{flex:1;justify-content:center}
+  .key-note{font-size:11px;color:var(--muted);margin-top:12px;line-height:1.55}
   .dict-head{
     position:sticky;top:0;background:var(--paper);z-index:2;
     display:flex;align-items:baseline;gap:10px;
@@ -576,6 +607,7 @@
       <span class="sep"></span>
       <button id="fontToggle" title="切换字体">衬线</button>
       <button id="themeToggle" title="深浅色">深色</button>
+      <button id="keyBtn" title="API 设置（解析短语）">🔑</button>
     </div>
   </header>
   <article>
@@ -616,6 +648,7 @@
 <div id="selToolbar">
   <button id="hlBtn">划线</button>
   <button id="dictBtn">查字典</button>
+  <button id="parseBtn">🧠 解析短语</button>
 </div>
 
 <!-- 语言要点提示卡片 -->
@@ -632,6 +665,31 @@
     <button class="x" id="dictClose">✕</button>
   </div>
   <div class="dict-body" id="dictBody"></div>
+</div>
+
+<!-- 解析短语面板 -->
+<div id="parsePanel">
+  <div class="dict-head">
+    <span class="w">🧠 解析短语</span>
+    <button class="x" id="parseClose">✕</button>
+  </div>
+  <div class="dict-body" id="parseBody"></div>
+</div>
+
+<!-- API 设置（解析短语） -->
+<div id="keyModal">
+  <div class="key-card">
+    <div class="key-title">API 设置 · 解析短语</div>
+    <label class="key-label">API Key（SiliconFlow）</label>
+    <input id="keyInput" type="password" placeholder="sk-..." autocomplete="off" autocapitalize="off" spellcheck="false">
+    <label class="key-label">模型</label>
+    <input id="keyModel" type="text" placeholder="Qwen/Qwen2.5-7B-Instruct" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <div class="key-actions">
+      <button id="keySave" class="btn primary">保存</button>
+      <button id="keyClose" class="btn ghost">关闭</button>
+    </div>
+    <div class="key-note">Base URL 固定为 https://api.siliconflow.cn/v1；Key 只保存在本机浏览器。</div>
+  </div>
 </div>
 
 <script type="application/json" id="builtinData">
@@ -1562,6 +1620,74 @@
     lookupWord(word, ctx);
   }
   function closeDict(){ $("dictPanel").classList.remove("show"); dictCurrent = null; }
+  /* ================= 划词解析短语 ================= */
+  var PARSE_SYSTEM_PROMPT = "你是一位英语口语老师。用户划选了一段英文，请用最直白的中文解释整句话的意思。\n1. 固定搭配：直接提炼出里面的固定短语或俚语，并给出中文释义（不要分析主谓宾）。\n2. 整句人话翻译：用符合中文习惯的大白话说出这句话的意思。\n要求回答简短，总字数不超过 100 字，不要废话。";
+  var PARSE_BASE_URL = "https://api.siliconflow.cn/v1";
+  var PARSE_MODEL = "Qwen/Qwen2.5-7B-Instruct";
+  // 预置的 API Key；用户可在「🔑」里改成自己的
+  var PARSE_DEFAULT_KEY = "sk-wmygstyhlcydcafsehbaqzzoznftmbfkumqlcdfssgcxrvib";
+  function getParseKey(){
+    var k = "";
+    try { k = localStorage.getItem("flip.apikey") || ""; } catch(e){}
+    return (k || "").trim() || PARSE_DEFAULT_KEY;
+  }
+  function getParseModel(){
+    var m = "";
+    try { m = localStorage.getItem("flip.parsemodel") || ""; } catch(e){}
+    return (m || "").trim() || PARSE_MODEL;
+  }
+  function openKeyModal(){
+    $("keyInput").value = getParseKey();
+    $("keyModel").value = getParseModel();
+    $("keyModal").classList.add("show");
+  }
+  function saveKeyModal(){
+    var k = ($("keyInput").value || "").trim();
+    var m = ($("keyModel").value || "").trim();
+    try {
+      if(k){ localStorage.setItem("flip.apikey", k); } else { localStorage.removeItem("flip.apikey"); }
+      if(m){ localStorage.setItem("flip.parsemodel", m); } else { localStorage.removeItem("flip.parsemodel"); }
+    } catch(e){}
+    $("keyModal").classList.remove("show");
+    toast("已保存");
+  }
+  function closeParse(){ $("parsePanel").classList.remove("show"); }
+  function onParse(){
+    var text = state.lastSelText || "";
+    text = (text || "").trim();
+    hideSelToolbar();
+    state.lastSelText = ""; state.savedRange = null;
+    try { window.getSelection().removeAllRanges(); } catch(e){}
+    if(!text) return;
+    parsePhrase(text);
+  }
+  function parsePhrase(text){
+    var apiKey = getParseKey();
+    if(!apiKey){ openKeyModal(); toast("请先填写 API Key"); return; }
+    $("parseBody").innerHTML = '<div class="dict-loading">解析中 …</div>';
+    $("parsePanel").classList.add("show");
+    fetch(PARSE_BASE_URL + "/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + apiKey },
+      body: JSON.stringify({
+        model: getParseModel(),
+        messages: [
+          { role: "system", content: PARSE_SYSTEM_PROMPT },
+          { role: "user", content: text }
+        ],
+        temperature: 0.3
+      })
+    })
+    .then(function(r){ if(!r.ok) return r.text().then(function(t){ throw new Error("HTTP " + r.status + " " + t.slice(0, 120)); }); return r.json(); })
+    .then(function(d){
+      var content = (d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) || "";
+      if(!content.trim()) throw new Error("空结果");
+      $("parseBody").innerHTML = renderText(content);
+    })
+    .catch(function(e){
+      $("parseBody").innerHTML = '<div class="dict-err">解析失败：' + esc(e.message || "网络或 Key 问题") + '</div>';
+    });
+  }
   function loadDictCn(){
     if(state.dictCn) return Promise.resolve(state.dictCn);
     if(state.dictCnPromise) return state.dictCnPromise;
@@ -1766,6 +1892,9 @@
     if(!$("readerBody").contains(range.commonAncestorContainer)){ return; }
     state.lastSelText = text;
     state.savedRange = range.cloneRange();
+    // 选中文字含空格（短语/句子）时，显示「解析短语」按钮
+    var pb = $("parseBtn");
+    if(pb) pb.classList.toggle("show", /\S\s+\S/.test(text));
     var rect = range.getBoundingClientRect();
     showSelToolbar(rect);
   });
@@ -1807,7 +1936,8 @@
     if(state.featured && state.featured.id) openReader(state.featured.id);
   });
   $("dictClose").addEventListener("click", closeDict);
-  ["hlBtn","dictBtn"].forEach(function(id){
+  $("parseClose").addEventListener("click", closeParse);
+  ["hlBtn","dictBtn","parseBtn"].forEach(function(id){
     $(id).addEventListener("pointerdown", function(e){
       e.preventDefault();
       // 兜底：部分环境（尤其 iOS）点按钮会先清空选区，这里在清空前先存一份
@@ -1824,6 +1954,11 @@
   });
   $("hlBtn").addEventListener("click", onHighlight);
   $("dictBtn").addEventListener("click", onDict);
+  $("parseBtn").addEventListener("click", onParse);
+  $("keyBtn").addEventListener("click", openKeyModal);
+  $("keyClose").addEventListener("click", function(){ $("keyModal").classList.remove("show"); });
+  $("keySave").addEventListener("click", saveKeyModal);
+  $("keyModal").addEventListener("click", function(e){ if(e.target === $("keyModal")) $("keyModal").classList.remove("show"); });
 
   /* ================= settings ================= */
   function applySettings(){
