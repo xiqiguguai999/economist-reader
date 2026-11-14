@@ -1781,8 +1781,17 @@
     }
   });
 
-  // 屏蔽 iOS Safari 长按系统菜单（拷贝/查询/翻译），保留选字能力
+  // 屏蔽 iOS Safari 长按系统菜单（拷贝/查询/翻译），保留正文选字能力
   document.addEventListener("contextmenu", function(e){ e.preventDefault(); });
+  document.addEventListener("selectstart", function(e){
+    // 正文区域保留选字（查词依赖选区）；正文之外阻止意外选字
+    var t = e.target, inBody = false;
+    while(t && t !== document){
+      if(t === $("readerBody")){ inBody = true; break; }
+      t = t.parentNode;
+    }
+    if(!inBody) e.preventDefault();
+  });
 
   // 事件绑定
   $("lightCard").addEventListener("click", function(){
