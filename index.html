@@ -264,6 +264,8 @@
   .dict-section{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin:16px 0 8px;font-weight:700}
   .dict-section:first-child{margin-top:4px}
   .dict-context{font-size:18px;line-height:1.75;color:#3a2f22;background:#f5efe0;padding:14px 16px;border-left:3px solid #b78a5e}
+  .dict-cn{font-size:16px;line-height:1.7;color:#3a2f22;margin:0 0 8px}
+  .dict-cn:last-of-type{margin-bottom:2px}
   .dict-example{display:block;font-size:19px;line-height:1.7;color:#5a4a38;margin:0 0 14px;background:#fbf7ee;padding:10px 14px;border-radius:8px}
   .dict-ex-num{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;margin-right:8px;background:#b78a5e;color:#fff;border-radius:50%;font-size:12px;font-weight:700;vertical-align:1px}
 
@@ -660,7 +662,9 @@
     scrollT: null,
     selT: null,
     lastSelText: "",
-    savedRange: null
+    savedRange: null,
+    dictCn: null,
+    dictCnPromise: null
   };
 
   /* ================= storage ================= */
@@ -1546,25 +1550,43 @@
     lookupWord(word, ctx);
   }
   function closeDict(){ $("dictPanel").classList.remove("show"); dictCurrent = null; }
+  function loadDictCn(){
+    if(state.dictCn) return Promise.resolve(state.dictCn);
+    if(state.dictCnPromise) return state.dictCnPromise;
+    state.dictCnPromise = fetch("vendor/dict-cn.json")
+      .then(function(r){ if(!r.ok) throw new Error("http"); return r.json(); })
+      .then(function(d){ state.dictCn = d; return d; })
+      .catch(function(){ state.dictCn = {}; return {}; });
+    return state.dictCnPromise;
+  }
   function lookupWord(word, ctx){
     dictCurrent = null;
     $("dictWord").textContent = word;
     $("dictPh").textContent = "";
     $("dictBody").innerHTML = '<div class="dict-loading">查询中 …</div>';
     $("dictPanel").classList.add("show");
-    var fail = function(){
-      $("dictBody").innerHTML = '<div class="dict-err">查不到「' + esc(word) + '」的释义（网络不通，或词典里没有这个词）</div>';
-    };
+
+    var cnText = null, enData = null, done = 0, called = false;
+    var timer = setTimeout(finishAll, 12000);
+    function finishAll(){
+      if(called) return;
+      called = true; clearTimeout(timer);
+      renderDict(word, enData, ctx, cnText);
+    }
+    loadDictCn().then(function(dict){
+      var w = word.toLowerCase();
+      cnText = (dict[w] || dict[word] || "");
+      done++; if(done >= 2) finishAll();
+    });
     var ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
-    var timer = setTimeout(function(){ if(ctrl){ try{ ctrl.abort(); }catch(e){} } fail(); }, 12000);
     try {
       fetch("https://api.dictionaryapi.dev/api/v2/entries/en/" + encodeURIComponent(word), ctrl ? { signal: ctrl.signal } : {})
         .then(function(r){ if(!r.ok) throw new Error("http " + r.status); return r.json(); })
-        .then(function(data){ clearTimeout(timer); renderDict(word, data, ctx); })
-        .catch(function(){ clearTimeout(timer); fail(); });
-    } catch(e){ clearTimeout(timer); fail(); }
+        .then(function(data){ enData = data; done++; if(done >= 2) finishAll(); })
+        .catch(function(){ enData = null; done++; if(done >= 2) finishAll(); });
+    } catch(e){ enData = null; done++; if(done >= 2) finishAll(); }
   }
-  function renderDict(word, data, ctx){
+  function renderDict(word, data, ctx, cnText){
     var context = ctx || "";
     if(!context){
       var vitem = state.vocab.find(function(v){ return v.word.toLowerCase() === word.toLowerCase(); });
@@ -1578,14 +1600,21 @@
       html += '<div class="dict-context">' + esc(context) + '</div>';
     }
 
-    // 版块 2：Steal like an artist（释义 + 例句）
-    html += '<div class="dict-section">Steal like an artist</div>';
+    // 版块 2：柯林斯英汉双解（离线）
+    if(cnText){
+      html += '<div class="dict-section">柯林斯英汉双解</div>';
+      cnText.split("  /  ").slice(0, 5).forEach(function(s){
+        if(s.trim()) html += '<div class="dict-cn">' + esc(s.trim()) + '</div>';
+      });
+    }
 
+    // 版块 3：Steal like an artist（英文释义 + 例句）
     var firstDef = "", examples = [];
     if(Array.isArray(data) && data.length){
       var entry = data[0];
       $("dictWord").textContent = entry.word || word;
       $("dictPh").textContent = entry.phonetic ? "/" + entry.phonetic + "/" : "";
+      html += '<div class="dict-section">Steal like an artist</div>';
       (entry.meanings || []).forEach(function(m){
         html += '<div class="dict-pos">' + esc(m.partOfSpeech || "") + '</div>';
         (m.definitions || []).slice(0, 3).forEach(function(d){
@@ -1600,13 +1629,12 @@
           html += '<div class="dict-example"><span class="dict-ex-num">' + (i+1) + '</span><span>' + esc(ex) + '</span></div>';
         });
       }
-      if(!firstDef) html += '<div class="dict-err">没有释义</div>';
-      dictCurrent = { word: entry.word || word, phonetic: entry.phonetic || "", def: firstDef, context: context };
+      dictCurrent = { word: entry.word || word, phonetic: entry.phonetic || "", def: cnText || firstDef, context: context };
     } else {
       $("dictWord").textContent = word;
       $("dictPh").textContent = "";
-      html += '<div class="dict-err">词典里没找到「' + esc(word) + '」</div>';
-      dictCurrent = { word: word, phonetic: "", def: "", context: context };
+      if(!cnText) html += '<div class="dict-err">词典里没找到「' + esc(word) + '」</div>';
+      dictCurrent = { word: word, phonetic: "", def: cnText || "", context: context };
     }
 
     html += '<div class="dict-actions"><button class="btn primary" id="dictAddBtn">＋ 加入生词本</button></div>';
