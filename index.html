@@ -1768,6 +1768,19 @@
     showSelToolbar(rect);
   });
 
+  // 点击正文里已划线的高亮词 → 直接再次查字典（不限次数）
+  $("readerBody").addEventListener("click", function(e){
+    var t = e.target;
+    while(t && t !== $("readerBody")){
+      if(t.tagName && t.tagName.toLowerCase() === "mark" && t.classList && t.classList.contains("hl")){
+        var word = (t.textContent || "").trim();
+        if(word){ lookupWord(word); }
+        return;
+      }
+      t = t.parentNode;
+    }
+  });
+
   // 事件绑定
   $("lightCard").addEventListener("click", function(){
     if(state.light && state.light.id) openReader(state.light.id);
