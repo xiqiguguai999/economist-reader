@@ -1,0 +1,1845 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>FLIP · 随手翻</title>
+<style>
+  :root{
+    --paper:#fafaf8;
+    --ink:#0a0a0a;
+    --muted:#6f6f6a;
+    --faint:#a8a8a2;
+    --card:#ecece8;
+    --card2:#e3e3de;
+    --accent:#D71A1B;
+    --accent-on:#ffffff;
+    --line:rgba(10,10,10,.08);
+    --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue","Segoe UI",Inter,Roboto,"PingFang SC","Microsoft YaHei",sans-serif;
+    --serif:Georgia,"Times New Roman","Songti SC",serif;
+    --mono:ui-monospace,"SF Mono","JetBrains Mono","Cascadia Code",Menlo,Consolas,monospace;
+    --reader-size:17px;
+    --reader-font:var(--sans);
+    --reader-leading:1.78;
+  }
+  body.dark{
+    --paper:#0e0e0c;
+    --ink:#ecece8;
+    --muted:#9a9a92;
+    --faint:#686864;
+    --card:#1a1a18;
+    --card2:#232321;
+    --accent:#E5484D;
+    --accent-on:#ffffff;
+    --line:rgba(236,236,232,.09);
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--sans);
+    font-size:16px;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    transition:background .25s ease,color .25s ease;
+  }
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+  input{font-family:inherit}
+
+  /* ---------- buttons ---------- */
+  .btn{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:9px 16px;font-size:13px;font-weight:600;
+    letter-spacing:.04em;border-radius:0;transition:transform .05s ease,opacity .2s;
+  }
+  .btn:active{transform:translateY(1px)}
+  .btn.primary{background:var(--accent);color:var(--accent-on)}
+  .btn.ghost{background:var(--card);color:var(--ink)}
+  .btn.ghost:hover{background:var(--card2)}
+
+  /* ---------- top bar ---------- */
+  .topbar{
+    position:sticky;top:0;z-index:20;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 22px;background:var(--paper);
+    border-bottom:2px solid var(--ink);
+  }
+  .brand{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+  .logo{font-size:21px;font-weight:800;letter-spacing:.18em;display:flex;align-items:center}
+  .logo .dot{width:11px;height:11px;background:var(--accent);margin-left:8px;display:inline-block}
+  .tagline{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+  .top-actions{display:flex;gap:8px}
+
+  /* ---------- library layout ---------- */
+  .wrap{max-width:760px;margin:0 auto;padding:0 22px 90px}
+
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 0 6px}
+  .stat{background:var(--card);padding:14px 16px}
+  .stat .num{font-size:26px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+  .stat .num .u{font-size:14px;font-weight:500;color:var(--muted);margin-left:2px}
+  .stat .lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:5px}
+
+  /* ---------- 板块卡片 ---------- */
+  .modules{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:20px 0 4px}
+  .module-card{
+    background:var(--card);padding:16px 14px;text-align:left;cursor:pointer;border-radius:0;
+    transition:background .15s ease;-webkit-tap-highlight-color:transparent;
+  }
+  .module-card:hover{background:var(--card2)}
+  .module-card:first-child{background:var(--accent);color:var(--accent-on)}
+  .module-card:first-child .mc-desc{color:rgba(255,255,255,.75)}
+  .module-card .mc-title{font-size:15px;font-weight:700;display:block;letter-spacing:-.01em}
+  .module-card .mc-desc{font-size:11px;color:var(--muted);display:block;margin-top:4px;line-height:1.4}
+  .home-section-title{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:22px 0 10px}
+
+  .toolbar{display:flex;gap:10px;align-items:center;margin:22px 0 14px}
+  .search{flex:1;position:relative}
+  .search input{
+    width:100%;padding:11px 14px 11px 34px;font-size:14px;
+    background:var(--card);border:none;border-radius:0;color:var(--ink);outline:none;
+  }
+  .search input::placeholder{color:var(--faint)}
+  .search .ic{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px}
+  .filters{display:flex;gap:6px}
+  .filters button{padding:8px 12px;font-family:var(--mono);font-size:11px;letter-spacing:.08em;background:var(--card);color:var(--muted)}
+  .filters button.on{background:var(--ink);color:var(--paper)}
+
+  /* ---------- article list ---------- */
+  .list{display:flex;flex-direction:column;gap:10px}
+  .card{
+    display:block;width:100%;text-align:left;cursor:pointer;
+    background:var(--card);padding:18px 18px 14px;border-radius:0;
+    position:relative;transition:background .15s ease;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .card:hover{background:var(--card2)}
+  .card .row1{display:flex;justify-content:space-between;align-items:flex-start;gap:14px}
+  .card .title{font-size:18px;font-weight:650;line-height:1.35;letter-spacing:-.005em}
+  .card .title .unread-dot{display:inline-block;width:7px;height:7px;background:var(--accent);margin-right:8px;vertical-align:middle;border-radius:0}
+  .card .del{flex-shrink:0;color:var(--muted);font-size:17px;padding:2px 6px;opacity:.5;cursor:pointer;transition:opacity .15s}
+  .card .del:hover{opacity:1;color:var(--ink)}
+  .card .meta{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:8px}
+  .card .meta span{margin-right:12px}
+  .card .bar{height:3px;background:var(--card2);margin-top:12px;overflow:hidden}
+  .card .bar i{display:block;height:100%;background:var(--accent)}
+
+  /* ---------- empty state ---------- */
+  .empty{
+    text-align:center;padding:72px 22px;color:var(--muted);
+  }
+  .empty .dots{
+    width:120px;height:120px;margin:0 auto 26px;
+    background-image:radial-gradient(var(--muted) 1px,transparent 1.5px);
+    background-size:14px 14px;opacity:.5;
+  }
+  .empty h2{font-size:20px;font-weight:700;color:var(--ink);letter-spacing:.01em}
+  .empty p{margin-top:10px;font-size:14px;line-height:1.6}
+  .empty .hint{margin-top:26px;display:inline-block;border:2px dashed var(--line);padding:14px 22px;font-family:var(--mono);font-size:12px;letter-spacing:.08em}
+
+  /* ---------- drop overlay ---------- */
+  #dropOverlay{
+    position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;
+    background:rgba(10,10,10,.82);color:#fafaf8;
+  }
+  #dropOverlay.show{display:flex}
+  #dropOverlay .box{border:2px solid #fafaf8;padding:44px 54px;text-align:center;font-size:17px;font-weight:600;letter-spacing:.04em}
+
+  /* ---------- reader ---------- */
+  .reader{display:none}
+  .reader.open{display:block}
+  .progress{position:fixed;top:0;left:0;right:0;height:3px;z-index:30;background:transparent}
+  .progress i{display:block;height:100%;width:0;background:var(--accent)}
+  .reader-bar{
+    position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;
+    padding:12px 20px;background:var(--paper);border-bottom:2px solid var(--ink);
+  }
+  .reader-controls{display:flex;gap:6px;align-items:center}
+  .reader-controls button{
+    min-width:34px;height:34px;padding:0 9px;font-size:13px;font-weight:600;
+    background:var(--card);color:var(--ink);border-radius:0;
+  }
+  .reader-controls button.on{background:var(--ink);color:var(--paper)}
+  .reader-controls .sep{width:1px;height:20px;background:var(--line);margin:0 4px}
+
+  .reader article{max-width:840px;margin:0 auto;padding:40px 22px 120px}
+  .reader h1{
+    font-size:32px;font-weight:700;line-height:1.2;letter-spacing:-.015em;
+    outline:none;border-left:6px solid var(--accent);padding-left:18px;margin-bottom:14px;
+  }
+  .reader .meta{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:34px}
+  .reader .meta span{margin-right:14px}
+  .body{
+    font-family:var(--reader-font);
+    font-size:var(--reader-size);
+    line-height:var(--reader-leading);
+  }
+  .body p{margin:0 0 1.05em;text-align:justify;hyphens:auto;overflow-wrap:break-word}
+  .body h2{font-size:1.45em;font-weight:700;margin:1.4em 0 .55em;line-height:1.3}
+  .body h3{font-size:1.2em;font-weight:700;margin:1.3em 0 .5em;line-height:1.3}
+  .body h4{font-size:1.05em;font-weight:700;margin:1.2em 0 .4em}
+  .body blockquote{border-left:3px solid var(--accent);padding:2px 0 2px 16px;margin:1.2em 0;color:var(--muted);font-size:1.18em}
+  .body ul,.body ol{margin:0 0 1.05em;padding-left:1.5em}
+  .body li{margin:.28em 0}
+  .body code{font-family:var(--mono);font-size:.9em;background:var(--card);padding:1px 5px}
+  .body strong{font-weight:700}
+  .body table{width:100%;border-collapse:collapse;margin:0 0 1.4em;font-size:.92em;display:block;overflow-x:auto}
+  .body table thead th{background:var(--ink);color:var(--paper);text-align:left;font-weight:600;padding:8px 10px;white-space:nowrap}
+  .body table tbody td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  .body table tbody tr:nth-child(even){background:var(--card)}
+  .reader-end{margin-top:56px;padding-top:30px;border-top:2px solid var(--ink);display:flex;gap:10px;flex-wrap:wrap}
+  .reader-end .done{width:100%;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+
+  /* ---------- toast ---------- */
+  #toast{
+    position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);
+    background:var(--ink);color:var(--paper);padding:11px 18px;font-size:13px;font-weight:600;
+    opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:200;max-width:88vw;text-align:center;
+  }
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* ---------- 划线高亮 ---------- */
+  .hl{
+    background:rgba(215,26,27,.13);
+    border-bottom:2px solid var(--accent);
+    padding:0 1px;border-radius:2px;cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+  }
+  body.dark .hl{background:rgba(229,72,77,.26)}
+
+  /* ---------- 选中浮动工具条 ---------- */
+  #selToolbar{
+    position:fixed;z-index:150;display:none;align-items:center;gap:2px;
+    background:var(--ink);color:var(--paper);padding:4px;border-radius:8px;
+    box-shadow:0 6px 20px rgba(0,0,0,.28);
+  }
+  #selToolbar.show{display:flex}
+  #selToolbar button{
+    color:var(--paper);padding:7px 12px;font-size:13px;font-weight:600;border-radius:6px;white-space:nowrap;
+  }
+  #selToolbar button:active{background:rgba(255,255,255,.18)}
+  #selToolbar button.on{color:var(--accent)}
+
+  /* ---------- 语言要点提示卡片 ---------- */
+  #exprTip{
+    position:fixed;z-index:185;display:none;max-width:78vw;
+    background:var(--ink);color:var(--paper);padding:14px 18px;border-radius:12px;
+    box-shadow:0 8px 28px rgba(0,0,0,.35);
+  }
+  #exprTip.show{display:block}
+  #exprTip .et-word{font-size:18px;font-weight:700;color:#7cc7ff}
+  #exprTip .et-meaning{font-size:15px;line-height:1.55;margin-top:6px;color:var(--paper)}
+  body.dark #exprTip{background:#1c1e22}
+  body.dark #exprTip .et-word{color:#8ec5ff}
+
+  /* ---------- 字典面板 ---------- */
+  #dictPanel{
+    position:fixed;z-index:160;left:0;right:0;bottom:0;
+    background:var(--paper);border-top:2px solid var(--ink);
+    max-height:62vh;overflow:auto;
+    transform:translateY(105%);transition:transform .25s ease;
+    padding:0 0 18px;
+  }
+  #dictPanel.show{transform:translateY(0)}
+  .dict-head{
+    position:sticky;top:0;background:var(--paper);z-index:2;
+    display:flex;align-items:baseline;gap:10px;
+    padding:16px 20px 12px;border-bottom:1px solid var(--line);
+  }
+  .dict-head .w{font-size:26px;font-weight:750;letter-spacing:-.01em}
+  .dict-head .ph{font-family:var(--mono);font-size:13px;color:var(--muted)}
+  .dict-head .x{margin-left:auto;font-size:20px;color:var(--muted);padding:2px 8px}
+  .dict-body{padding:6px 20px}
+  .dict-pos{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:14px 0 4px}
+  .dict-def{font-size:17px;line-height:1.65;margin:0 0 8px}
+  .dict-def::before{content:"· ";color:var(--accent)}
+  .dict-err{padding:24px 20px;color:var(--muted);font-size:14px}
+  .dict-loading{padding:24px 20px;color:var(--muted);font-size:14px}
+  .dict-actions{display:flex;gap:8px;padding:4px 20px 0}
+  .dict-actions .btn{flex:1;justify-content:center}
+  .dict-section{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin:16px 0 8px;font-weight:700}
+  .dict-section:first-child{margin-top:4px}
+  .dict-context{font-size:18px;line-height:1.75;color:#3a2f22;background:#f5efe0;padding:14px 16px;border-left:3px solid #b78a5e}
+  .dict-example{display:block;font-size:19px;line-height:1.7;color:#5a4a38;margin:0 0 14px;background:#fbf7ee;padding:10px 14px;border-radius:8px}
+  .dict-ex-num{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;margin-right:8px;background:#b78a5e;color:#fff;border-radius:50%;font-size:12px;font-weight:700;vertical-align:1px}
+
+  /* ---------- 生词本视图 ---------- */
+  .vocab-view{display:none}
+  .vocab-view.open{display:block}
+  .vocab-wrap{max-width:760px;margin:0 auto;padding:18px 20px 90px}
+  .vocab-item{
+    display:block;background:var(--card);border-radius:12px;
+    padding:18px 20px 16px;margin-bottom:12px;cursor:pointer;
+    transition:background .15s ease;-webkit-tap-highlight-color:transparent;
+  }
+  .vocab-item:hover{background:var(--card2)}
+  .vocab-head{display:flex;justify-content:space-between;align-items:baseline}
+  .vocab-item .w{font-size:26px;font-weight:700;letter-spacing:-.01em}
+  .vocab-item .del{flex-shrink:0;color:var(--muted);font-size:22px;padding:2px 8px;cursor:pointer;opacity:.5}
+  .vocab-item .del:hover{opacity:1;color:var(--ink)}
+  .vocab-def{font-size:20px;color:#3a2f22;line-height:1.6;margin-top:10px}
+  .vocab-example{font-size:24px;line-height:1.6;color:#2a1e13;background:#f7ecd7;padding:14px 16px;border-left:4px solid #9b5a2e;border-radius:0 8px 8px 0;margin-top:12px}
+  .vocab-src{font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--faint);margin-top:10px}
+  .vocab-empty{padding:60px 20px;text-align:center;color:var(--muted);font-size:17px}
+
+  /* ---------- 经济学人板块 ---------- */
+  .eco-wrap{max-width:720px;margin:0 auto;padding:18px 20px 90px}
+  .eco-section-title{
+    font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--muted);margin:22px 0 12px;padding-bottom:6px;border-bottom:2px solid var(--ink);
+  }
+  .eco-section-title:first-child{margin-top:2px}
+  .eco-item{
+    display:block;width:100%;text-align:left;cursor:pointer;
+    background:var(--card);padding:20px 20px 16px;margin-bottom:12px;border-radius:0;
+    transition:background .15s ease;-webkit-tap-highlight-color:transparent;
+  }
+  .eco-item:hover{background:var(--card2)}
+  .eco-item .t{font-size:19px;font-weight:700;line-height:1.3;letter-spacing:-.01em}
+  .eco-item .m{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:6px}
+  .eco-item .p{font-size:14.5px;line-height:1.65;color:var(--muted);margin-top:10px}
+  .eco-item .cta{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--accent);margin-top:10px}
+
+  @media (max-width:640px){
+    .stats{grid-template-columns:repeat(2,1fr)}
+    .tagline{display:none}
+    .reader h1{font-size:26px}
+    .filters button{padding:8px 10px}
+    .btn{padding:9px 13px}
+  }
+
+  /* ============ 少数派风 · 首页（仅文库页 #library） ============ */
+  #library{
+    --paper:#ffffff;
+    --card:#f7f8fa;
+    --card2:#eef0f3;
+    --line:#e9ebee;
+    --ink:#1a1a1a;
+    --muted:#8a9099;
+    --faint:#b6bac1;
+    background:#ffffff;
+  }
+
+  /* 顶栏：白底 + 细线 */
+  #library .topbar{background:#ffffff;border-bottom:1px solid var(--line);padding:16px 28px}
+  #library .topbar .tagline{color:var(--muted)}
+  #library .topbar .btn{border-radius:999px;padding:9px 16px;font-size:13px}
+  #library .topbar .btn.ghost{background:#ffffff;border:1px solid var(--line);color:var(--ink)}
+  #library .topbar .btn.ghost:hover{background:#ffffff;border-color:var(--accent);color:var(--accent)}
+  #library .topbar .btn.primary{background:var(--accent);color:#ffffff}
+
+  /* 主容器：加宽 + 留白 */
+  #library .wrap{max-width:840px;padding:0 28px 110px}
+
+  /* 三个板块卡 */
+  #library .modules{grid-template-columns:repeat(3,1fr);gap:14px;margin:26px 0 4px}
+  #library .module-card{
+    background:#ffffff;border:1px solid var(--line);border-radius:12px;
+    padding:20px 18px 18px;position:relative;overflow:hidden;
+    transition:border-color .15s ease,box-shadow .15s ease;
+  }
+  #library .module-card:hover{border-color:var(--accent);box-shadow:0 8px 22px rgba(0,0,0,.06)}
+  #library .module-card .mc-title{font-size:16px;font-weight:700;color:var(--ink)}
+  #library .module-card .mc-desc{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5}
+  #library .module-card:first-child{background:#fff5f5;border-color:#f2cbcc;color:var(--ink)}
+  #library .module-card:first-child .mc-title{color:var(--accent)}
+  #library .module-card:first-child .mc-desc{color:#b06a6c}
+  #library .module-card:first-child::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent)}
+
+  /* 板块标题 */
+  #library .home-section-title{margin:28px 0 14px;color:var(--muted)}
+
+  /* 数据条 */
+  #library .stats{grid-template-columns:repeat(4,1fr);gap:12px;margin:14px 0 4px}
+  #library .stat{background:#ffffff;border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+  #library .stat .num{font-size:26px;font-weight:700;color:var(--ink)}
+  #library .stat .lbl{margin-top:6px;color:var(--muted)}
+
+  /* 搜索 + 筛选 */
+  #library .toolbar{margin:20px 0 18px;gap:12px}
+  #library .search input{
+    background:#ffffff;border:1px solid var(--line);border-radius:999px;
+    padding:11px 16px 11px 38px;color:var(--ink);
+    transition:border-color .15s ease,box-shadow .15s ease;
+  }
+  #library .search input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(215,26,27,.12)}
+  #library .search .ic{left:16px}
+  #library .filters{gap:8px}
+  #library .filters button{
+    background:#ffffff;border:1px solid var(--line);border-radius:999px;
+    padding:8px 14px;color:var(--muted);letter-spacing:.05em;
+  }
+  #library .filters button:hover{border-color:var(--accent);color:var(--accent)}
+  #library .filters button.on{background:var(--accent);border-color:var(--accent);color:#ffffff}
+
+  /* 文章列表 */
+  #library .list{gap:12px}
+  #library .card{
+    background:#ffffff;border:1px solid var(--line);border-radius:12px;
+    padding:20px 22px 16px;transition:border-color .15s ease,box-shadow .15s ease;
+  }
+  #library .card:hover{border-color:var(--accent);box-shadow:0 8px 22px rgba(0,0,0,.05)}
+  #library .card .title{font-size:18px;font-weight:650;line-height:1.4}
+  #library .card .title .unread-dot{background:var(--accent);border-radius:50%;margin-right:9px}
+  #library .card .meta{font-family:var(--sans);font-size:11.5px;letter-spacing:0;text-transform:none;color:var(--muted);margin-top:10px}
+  #library .card .bar{background:var(--card2);border-radius:2px;margin-top:14px}
+  #library .card .bar i{background:var(--accent);border-radius:2px}
+
+  /* 查看全部 */
+  #library .see-all{background:#ffffff;border:1px solid var(--line);border-radius:999px;color:var(--ink);margin-top:14px}
+  #library .see-all:hover{border-color:var(--accent);color:var(--accent)}
+
+  /* 今日推荐（featured） */
+  #library .featured{margin:22px 0 6px}
+  #library .section-label{font-size:12px;color:var(--muted);letter-spacing:.06em;font-weight:600;margin-bottom:12px}
+  #library .featured-card{
+    background:#ffffff;border:1px solid var(--line);border-radius:12px;
+    padding:22px;cursor:pointer;position:relative;overflow:hidden;
+    transition:border-color .15s ease,box-shadow .15s ease;
+  }
+  #library .featured-card:hover{border-color:var(--accent);box-shadow:0 8px 22px rgba(0,0,0,.06)}
+  #library .featured-card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent)}
+  #library .f-title{font-size:26px;font-weight:700;line-height:1.25;letter-spacing:-.01em;color:var(--ink)}
+  #library .f-intro{font-size:15px;color:var(--muted);line-height:1.65;margin-top:12px}
+  #library .f-cta{font-size:13px;color:var(--accent);font-weight:600;margin-top:14px}
+
+  /* 杂志式网格 */
+  #library .home-grid{
+    display:grid;grid-template-columns:1fr 1fr;
+    grid-template-areas:"light expr" "hero hero";
+    gap:12px;margin:18px 0 0;
+  }
+  #library .home-cell{
+    background:#ffffff;border:1px solid var(--line);border-radius:12px;
+    padding:18px 20px;cursor:pointer;position:relative;overflow:hidden;
+    transition:border-color .15s ease,box-shadow .15s ease;
+  }
+  #library .home-cell:hover{border-color:var(--accent);box-shadow:0 8px 22px rgba(0,0,0,.06)}
+  #library .home-cell.light{grid-area:light;display:flex;gap:14px;align-items:center}
+  #library .home-cell.expr{grid-area:expr}
+  #library .home-cell.hero{grid-area:hero;padding:24px 26px;display:flex;gap:24px;align-items:center}
+  #library .home-cell.hero::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent)}
+  #library .hero-text{flex:1;min-width:0}
+  #library .hero-cartoon{flex-shrink:0;width:200px;max-width:38%;border-radius:10px}
+  #library .light-text{flex:1;min-width:0}
+  #library .light-cartoon{flex-shrink:0;width:64px;height:64px;object-fit:cover;border-radius:8px}
+  #library .cell-label{
+    font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--muted);margin-bottom:10px;font-weight:700;
+  }
+  #library .cell-title{font-size:17px;font-weight:700;line-height:1.4;color:var(--ink);letter-spacing:-.01em}
+  #library .cell-blurb{font-size:13px;color:var(--muted);line-height:1.55;margin-top:8px}
+  #library .hero-title{font-size:25px;font-weight:750;line-height:1.3;color:var(--ink);letter-spacing:-.01em}
+  #library .hero-summary{font-size:16px;color:var(--muted);line-height:1.65;margin-top:12px}
+  #library .hero-cta{font-size:13px;color:var(--accent);font-weight:600;margin-top:14px}
+  #library .all-articles{display:flex;flex-direction:column}
+  #library .aa-item{
+    display:block;width:100%;text-align:left;cursor:pointer;
+    padding:14px 4px;border-bottom:1px solid var(--line);
+    transition:background .12s ease;
+  }
+  #library .aa-item:hover{background:var(--card)}
+  #library .aa-title{font-size:16px;font-weight:650;line-height:1.4;color:var(--ink)}
+  #library .aa-meta{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:var(--faint);margin-top:4px}
+
+  /* 表达挑战（hook） */
+  #library .hook{margin:20px 0 6px}
+  #library .hook-body{display:flex;flex-direction:column;gap:10px}
+  #library .hook-item{
+    background:#ffffff;border:1px solid var(--line);border-radius:12px;
+    padding:16px 18px;transition:border-color .15s ease;
+  }
+  #library .hook-item:hover{border-color:var(--accent)}
+  #library .hook-sentence{font-size:22px;line-height:2;color:#3a2f22;margin-bottom:6px}
+  #library .hook-input{
+    border:none;border-bottom:2px solid var(--accent);background:transparent;
+    font-size:22px;color:#2a1e13;width:150px;text-align:center;outline:none;
+    font-family:inherit;padding:2px 4px;border-radius:0;
+  }
+  #library .hook-input::placeholder{color:var(--faint);font-size:16px}
+  #library .hook-input:disabled{border-bottom-color:var(--muted);color:var(--muted)}
+  #library .hook-feedback{display:none;font-size:16px;font-weight:700;margin:6px 0 0}
+  #library .hook-feedback.ok{display:block;color:#2e6b4f}
+  #library .hook-feedback.bad{display:block;color:#c0392b}
+  #library .hook-hint{display:none;font-size:16px;line-height:1.6;color:var(--muted);margin:0 0 10px}
+  #library .hook-item.hinted .hook-hint{display:block}
+  #library .hook-answer{
+    display:none;margin:0 0 10px;font-size:21px;font-weight:700;color:var(--accent);
+    background:var(--card);padding:10px 14px;border-radius:8px;
+  }
+  #library .hook-item.revealed .hook-answer{display:inline-block}
+  #library .hook-actions{display:flex;gap:8px}
+  #library .hook-btn{
+    padding:7px 14px;font-size:13px;font-weight:600;border-radius:999px;
+    border:1px solid var(--line);background:#ffffff;color:var(--ink);cursor:pointer;
+  }
+  #library .hook-btn:active{background:var(--card)}
+  #library .hook-prompt{font-size:16px;color:var(--ink);margin-top:8px;line-height:1.5}
+  #library .hook-empty{background:#ffffff;border:1px dashed var(--line);border-radius:12px;padding:20px;color:var(--muted);font-size:14px;line-height:1.6}
+
+  /* 空状态 */
+  #library .empty .hint{border:1px dashed var(--line);border-radius:10px}
+
+  /* 深色模式：首页跟随 */
+  body.dark #library{--paper:#111214;--card:#1c1e22;--card2:#26292e;--line:#2f3237;--ink:#ecece8;--muted:#9aa0a8;--faint:#68686e;background:#111214}
+  body.dark #library .topbar{background:#111214;border-color:#2f3237}
+  body.dark #library .topbar .btn.ghost{background:#1c1e22;border-color:#2f3237;color:#ecece8}
+  body.dark #library .module-card{background:#1c1e22;border-color:#2f3237}
+  body.dark #library .module-card:first-child{background:#2a1617;border-color:#5c2628}
+  body.dark #library .module-card:first-child .mc-title{color:#ff7a7d}
+  body.dark #library .module-card:first-child .mc-desc{color:#c08a8c}
+  body.dark #library .stat{background:#1c1e22;border-color:#2f3237}
+  body.dark #library .search input{background:#1c1e22;border-color:#2f3237;color:#ecece8}
+  body.dark #library .filters button{background:#1c1e22;border-color:#2f3237;color:#9aa0a8}
+  body.dark #library .filters button.on{background:var(--accent);border-color:var(--accent);color:#ffffff}
+  body.dark #library .card{background:#1c1e22;border-color:#2f3237}
+  body.dark #library .see-all{background:#1c1e22;border-color:#2f3237;color:#ecece8}
+
+  /* 移动端：模块卡纵向堆叠、数据条两列 */
+  @media (max-width:640px){
+    #library .modules{grid-template-columns:1fr}
+    #library .stats{grid-template-columns:repeat(2,1fr)}
+    #library .topbar{padding:12px 16px}
+    #library .wrap{padding:0 16px 90px}
+  }
+</style>
+</head>
+<body>
+
+<div id="dropOverlay"><div class="box">松手 · 导入文章</div></div>
+
+<!-- ============ LIBRARY ============ -->
+<main id="library">
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">FLIP<span class="dot"></span></span>
+      <span class="tagline">The Economist · 随手翻</span>
+    </div>
+    <div class="top-actions">
+      <button class="btn ghost" id="moduleVocab">生词复习</button>
+      <button class="btn ghost" id="shuffleBtn">⟳ 随手翻</button>
+      <button class="btn primary" id="importBtn">＋ 导入</button>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <!-- 杂志式网格 -->
+    <section class="home-grid">
+      <div class="home-cell light" id="lightCard" role="button" tabindex="0">
+        <div class="light-text">
+          <div class="cell-label">轻松好读 · 有趣</div>
+          <div class="cell-title" id="lightTitle"></div>
+          <div class="cell-blurb" id="lightBlurb"></div>
+        </div>
+        <img class="light-cartoon" id="lightCartoon" alt="cartoon">
+      </div>
+      <div class="home-cell expr" id="exprCard" role="button" tabindex="0">
+        <div class="cell-label">英语表达</div>
+        <div class="cell-title">Leaders · 语言要点</div>
+        <div class="cell-blurb">习语 · 短语动词 · 搭配 · 句式</div>
+      </div>
+      <div class="home-cell hero" id="featuredCard" role="button" tabindex="0">
+        <div class="hero-text">
+          <div class="cell-label">Leaders · 本期封面</div>
+          <div class="hero-title" id="featuredTitle"></div>
+          <div class="hero-summary" id="featuredIntro"></div>
+          <div class="hero-cta">读全文 →</div>
+        </div>
+        <img class="hero-cartoon" id="featuredCartoon" alt="cartoon">
+      </div>
+    </section>
+
+    <section class="hook">
+      <div class="section-label">今日表达挑战</div>
+      <div class="hook-body" id="hookBody"></div>
+    </section>
+
+    <div class="section-label" id="allLabel">本期经济学人 · 所有文章</div>
+    <section class="all-articles" id="allArticles"></section>
+  </div>
+</main>
+
+<!-- ============ READER ============ -->
+<main class="reader" id="reader">
+  <div class="progress"><i id="progressFill"></i></div>
+  <header class="reader-bar">
+    <button class="btn ghost" id="backBtn">← 文库</button>
+    <div class="reader-controls">
+      <button id="fontDown" title="缩小字号">A−</button>
+      <button id="fontUp" title="放大字号">A+</button>
+      <span class="sep"></span>
+      <button id="fontToggle" title="切换字体">衬线</button>
+      <button id="themeToggle" title="深浅色">深色</button>
+    </div>
+  </header>
+  <article>
+    <h1 id="readerTitle" contenteditable="true" spellcheck="false"></h1>
+    <div class="meta" id="readerMeta"></div>
+    <div class="body" id="readerBody"></div>
+    <footer class="reader-end">
+      <div class="done" id="readerDone"></div>
+      <button class="btn primary" id="nextBtn">随手翻下一篇 →</button>
+      <button class="btn ghost" id="endBackBtn">回到文库</button>
+    </footer>
+  </article>
+</main>
+
+<!-- ============ VOCAB (生词本) ============ -->
+<main class="vocab-view" id="vocabView">
+  <header class="reader-bar">
+    <button class="btn ghost" id="vocabBack">← 返回</button>
+    <div class="reader-controls">
+      <span style="font-family:var(--mono);font-size:12px;letter-spacing:.08em;color:var(--muted)" id="vocabCount"></span>
+    </div>
+  </header>
+  <div class="vocab-wrap" id="vocabList"></div>
+</main>
+
+<!-- ============ ECONOMIST (经济学人) ============ -->
+<main class="vocab-view" id="ecoView">
+  <header class="reader-bar">
+    <button class="btn ghost" id="ecoBack">← 返回</button>
+    <div class="reader-controls">
+      <span style="font-family:var(--mono);font-size:12px;letter-spacing:.08em;color:var(--muted)">The Economist · Leaders</span>
+    </div>
+  </header>
+  <div class="eco-wrap" id="ecoList"></div>
+</main>
+
+<!-- 选中浮动工具条 -->
+<div id="selToolbar">
+  <button id="hlBtn">划线</button>
+  <button id="dictBtn">查字典</button>
+</div>
+
+<!-- 语言要点提示卡片 -->
+<div id="exprTip">
+  <div class="et-word" id="exprTipWord"></div>
+  <div class="et-meaning" id="exprTipMeaning"></div>
+</div>
+
+<!-- 字典面板 -->
+<div id="dictPanel">
+  <div class="dict-head">
+    <span class="w" id="dictWord"></span>
+    <span class="ph" id="dictPh"></span>
+    <button class="x" id="dictClose">✕</button>
+  </div>
+  <div class="dict-body" id="dictBody"></div>
+</div>
+
+<script type="application/json" id="builtinData">
+{"sections":[{"key":"Leaders","label":"Leaders","articles":[{"id":"eco-1","title":"Donald Trump's humiliation offers America an opportunity","full":"SURFERS CALL it the washing machine. When a giant wave throws you off your board and plunges you underwater, you lose all sense of where you are. That is what befell Donald Trump and his party on November 3rd, as they were slammed by tens of millions of American voters. They have still to grasp just how much their country has changed.\n\nAlready it is clear this was not a normal midterm swing against a sitting president, but the biggest wave-election since the aftermath of Watergate more than 50 years ago. Democrats won control of both chambers of Congress, flipping seats deep into once-safe red waters, from South Carolina to Texas.\n\nThe coming days will spell out two further lessons. One is that this is not just a triumph for Democrats, but also for American democracy. Voters cannot be taken for granted. If they are angry, they will turn against parties they have long supported. The other lesson, which follows from this, is that both parties now need to find a new way of doing politics—one that spends less time riling up their constituents and more getting things done on their behalf.\n\nThe wave has swept across America. With some races still uncalled, the Democrats have 54 Senate seats (including two independents) and around 260 in the House, up from 47 and 214. They are set to win the popular vote for the House by 13 points. They have also taken at least five more governors' mansions. Kansas has its first Democratic senator since the New Deal. In Texas Democrats won their first Senate seat in almost 40 years and kicked out a three-term governor.\n\nIt turns out that voters do not much like a president who is elected on a promise to lower prices and stay out of wars, but who then goes on to launch a tariff crusade and attack Iran—thereby driving up prices. And they hate it if that president's relentless self-glorification and enrichment of his family and friends mocks their own hardship. In Mr Trump's America, Gallup finds, nine in ten adults complain that corruption in their government is widespread—about as many as in Nigeria.\n\nThe vote was thus a verdict on the president. But politicians from both parties should also reflect on voters' rejection of the ugly mechanics of modern partisanship. Republicans gerrymandered seats, but failed to make gains. Elon Musk, a multi-billionaire, poured more than $150m into a race in Texas, but his candidate was trounced. Republican candidates stoked fears over Muslims and transgender people, and lost. One in Ohio backed an ad in which a mother damned his opponent: her own abused daughter. It sealed his defeat.\n\nThe message from this is clear and it is hopeful. It has often seemed as if polarisation was stronger than the electoral feedback that ensures democratic accountability. Not this time. Voters demanded that politicians put the nation's prosperity above the grubby pursuit of power. Just before the election, polls say, 80% of Americans called for \"substantial change\" or \"complete and total upheaval\" in how America is run.\n\nVoters have done their job. Politicians must now do theirs. The immediate task falls to the Republicans. When Mr Trump took control of the party, he ditched its values. Most old-guard Republican politicians were either forced out of office or traded their principles for political survival. With their call for change, voters have given Republicans a second chance. Some may stick with the president, risking further drubbings in future elections. Braver souls will breathe new life into their party, even if that courts Mr Trump's vengeance. He is more feared than loved. They may discover that, once the old king's power begins to ebb, it drains away surprisingly fast.\n\nPlenty could go wrong—including with Democrats flushed by success. Their party is only a bit more popular than Mr Trump. Their campaign succeeded by pairing a promise to lower costs with one to crack down on corruption and incompetence. Both are vital, but the balance will be hard to strike.\n\nIf Democrats ignore the rot, they will only deepen voters' cynicism and despair at the federal government in Washington. But if subpoenas and impeachments consume all of their efforts and they fail to improve people's lives, voters will feel that they have been hoodwinked once again. A running fight with the administration will also make it harder to pass legislation that would, say, restore funding for health care.\n\nAbove it all will loom the legacy-obsessed figure of Mr Trump. Some hold out hope that he will spend the rest of his presidency pottering about the White House, gilding golf balls and opining on granite. That underestimates the president's capacity, for good and ill.\n\nAt home Mr Trump may focus on pardoning his friends and punishing his enemies. With only two years left, he and his cronies and ideologues may try to wring what more they can from their time in power, be that through lucrative state-supported mining ventures or more deportations.\n\nThe president also retains enormous authority over foreign policy. He may yet pursue further strikes on Iran, try to bully Ukraine into a bad deal with Russia, or invade Cuba. As the White House's more talented staff eye the exits, a depleted executive branch may find itself even more subject to the president's whims. It will be ill-prepared for a crisis.\n\nThere is a glimmer of a possibility, however, that politicians will take their responsibility seriously. Republicans in Congress may consider working with Democrats, and vice versa (imagine that). They could pursue egregious corruption or even impeach the administration's most reckless cabinet members, including Pete Hegseth, the secretary of war. They could develop rules for artificial intelligence that guard against disastrous outcomes without crippling innovation.\n\nMr Trump is not a man who enjoys being left out. He may judge that he could improve his legacy by working with Congress, rather than trampling on it. That is not the likeliest scenario, we admit. But, as the voters have shown, politicians who ignore them risk ending up in very deep water. ■","words":1011},{"id":"eco-3","title":"The world must act to stop a cyber-disaster","full":"It was meant to be \"cyber-security awareness month\". Experts now call it \"Black October\". In recent weeks the normal flow of computer hacks and bugs that engineers must constantly stem has become a torrent. The cause is artificial intelligence, which has turbocharged cyber malfeasance. Open-source AI models have empowered attackers to work with inhuman efficiency, competence and persistence. As a result, years' worth of critical flaws have been exposed in days.\n\nThose flaws range from shocking to ridiculous. Engineers have rushed to fix a flaw in PHP, a widely used programming language, that let attackers take over any computer using it. Freezers in supermarkets across Europe powered down on the instructions of cyber-criminals. And a crucial internet security certificate was revealed to have a private key of \"4\", when it should have been a hundred digits long. Nobody knows what bugs might have been found and exploited in private.\n\nThese events have been sobering for the many commentators, including this newspaper, who hoped that the disruption to cyber-security from ai would be short-lived, and that the technology itself would help those who defend digital systems more than it would empower crooks. Those hopes are being dashed. Instead, the digital infrastructure on which modern life depends looks increasingly vulnerable to ai. Urgent action is needed to defend it.\n\nWhy are defenders struggling? The first reason is that many of them do not have the most advanced tools. In April Anthropic, a leading model-maker, launched \"Project Glasswing\", an invitation-only club with access to the full cyber capabilities of its frontier models. It originally intended to broaden the membership widely. A similar programme from OpenAI was launched with a promise to democratise access to its tools.\n\nHowever, access to powerful AI has become a geopolitical issue. Both of the model-makers now need sign-off from America's federal government before admitting new members to their clubs, so expanding them has become a painful political process. In the meantime those outside the gates must defend themselves with the same open-source tools that are powering the attacks. Some are stuck in a no-man's land: unable to access American tech, but also scared of using Chinese alternatives.\n\nThe second problem is that when AI is used benignly it creates a friendly-fire problem. The moment that a \"patch\" for a newly identified vulnerability is released, hackers' AI models can examine it. This may reveal exactly what the weakness was and how to exploit it in systems that have not yet been fixed. If defenders are really unlucky—as they were with php—the patch may leak before it is released for defenders to use to fix their code. Attackers can then operate against still-defenceless systems.\n\nA final issue is that attackers can exploit prosaic vulnerabilities faster and on a greater scale (see Business section). Cyber-security is not just about having strong systems available in theory, but avoiding laxity in practice. Unfortunately, AI has made human carelessness easier to exploit without making computer users any wiser. An internet-connected fridge running outdated software or using a default password has been a security hazard for decades. Only now, however, have attackers found it so easy to automate the search for and exploitation of weak points, running thousands of attacks in parallel.\n\nCompanies and governments must act decisively against these threats. Generating an imbalance in cyber-weaponry is crucial. With equal firepower, defenders rely on a narrow natural advantage: they must find and patch only single vulnerabilities—isolated problems which might in theory help create a breach. Attackers typically need to know of a whole chain of those vulnerabilities in order to breach a system.\n\nNow that AI-powered attacks are proliferating, this advantage is too narrow. Defenders need a bigger armoury. America's government should take a more permissive attitude to membership of cyber-defence programmes, or at least approve new joiners faster. It would also be better if attackers' capabilities were pushed further behind the frontier. China's government has recognised the folly of distributing potent cyber-weapons to all, and is requiring labs to limit the destructive potential of newly released systems.\n\nOrganisations that are not yet using AI constantly to find and close security holes have fallen behind the curve and must catch up. Some entities need more help. In America efforts like Texas's \"Project Watershed 250\" are funnelling resources to providers of infrastructure to help with the basics. Those efforts should be expanded. In time, the software industry may be able to verify some code formally, thereby proving that it is unhackable, much as a mathematician proves a theorem.\n\nCommerce, infrastructure and human relationships have come to rely on the assumption that the internet is secure. A sudden loss of cyber-security would therefore pose a grave threat to society. Cyber-security awareness has risen over the past month. Action must follow. ■","words":794},{"id":"eco-4","title":"Patients are acting more like consumers. Good","full":"The person who uses a product usually chooses it and pays for it. The great exception is health care. Most of the time insurers (public or private) decide what is covered; doctors decide what is prescribed and patients take what they are given. The result is markets riddled with inefficiency, and nowhere more so than in America, the world's biggest. This year Americans are expected to spend about $6trn on health, nearly a fifth of their country's GDP. Yet for all that money, about one adult in ten could not get an appointment when they needed one last year, and more than a quarter put off or skipped care because of the cost.\n\nNo wonder patients are taking matters into their own hands. They pepper chatbots with questions such as how to decode a blood test or prepare for an appointment; every week more than 300m people ask ChatGPT about health, says OpenAI, its creator. The market for tests that patients order themselves has grown to be worth about $4bn a year in America, double its size in 2021, reckons Morgan Stanley, a bank. And drugmakers have started selling directly to patients. Eli Lilly, an American pharmaceutical giant, now fills about half of new prescriptions for its obesity jab in America this way, bypassing insurers. All three developments are good news.\n\nOne reason is that patient-led markets bring lower prices. Take drugs. In America their true cost is obscured by a tangle of middlemen and insurers, who negotiate secret discounts from inflated list prices. When patients pay directly, prices are transparent and drugmakers must compete. New obesity drugs are a good example. Novo, a Danish drugmaker, launched Wegovy in 2021 at a list price of about $1,350 a month. That led to a price war with Lilly, and competition from cheap copies. Both firms now sell their jabs direct to patients for as little as $300-350 a month. The same logic works for older products. Mark Cuban Cost Plus Drug Company, an online pharmacy founded by a billionaire, buys generics from their makers and sells them at cost plus a 15% mark-up. One study found that patients with employer-provided insurance who pay over $15 for a prescription could buy it more cheaply from Cost Plus nearly 80% of the time.\n\nWhen patients pay, firms also come up with new ways to sell to them. \"Direct primary care\", where medical practices ditch insurers and charge patients a monthly fee instead, has grown by nearly a fifth per year since 2022, to more than 3,600 practices in America. Others, such as Amazon's One Medical, treat common ailments on a pay-per-visit basis. Drugmakers are looking at treatments that consumers will pay for, even if insurers will not. Novo is eyeing treatments for hair loss, addiction and menopause, conditions that big pharma long dismissed as unworthy of serious research. Even fighting off ageing now attracts money.\n\nMost profound of all is the erosion of the original source of market power: a doctor's hold on medical knowledge. In 1963 Kenneth Arrow, an economist, said that health care could not work like an ordinary market partly because the information a doctor possesses is \"necessarily very much greater than that of the patient, or at least so it is believed by both parties\". Technology has since narrowed that gap. Chatbots, though hardly infallible, translate medical jargon into plain English and set out the treatment options for a condition. Increasingly they work with patients' own data, too.\n\nConsumer-led health care carries dangers. The first is quackery. Websites and influencers peddle peptides and supplements that promise bigger muscles, better skin or a longer life. Many do nothing and some do harm. Regulators should make sure sellers do not lie about their products. Access matters, too. Nearly all consumer health care is paid for out of pocket, so for now it mostly serves the well-off. However, most innovations start out as luxuries and get cheaper.\n\nNo one will shop for doctors from the back of an ambulance. Complex and emergency care will stay with doctors, hospitals and insurers. But in the routine parts of medicine, patients can and should be treated as customers. A bloated, paternalistic industry has kept them waiting long enough. ■","words":704},{"id":"eco-5","title":"England's new ban on kinky porn will misfire","full":"Pornography depicting strangulation, suffocation, incest and actors pretending to be underage will be banned in England and Wales from November 6th. Few will publicly mourn the loss of videos with titles such as \"Choking gets her off\". But free expression means nothing if it does not apply to that which is objectionable.\n\nThe government argues that porn is causing real harm, by teaching young people that dangerous practices are not merely normal during sex but expected. It notes with shock a sharp rise in \"choking\". In America, Australia and Britain roughly half of sexually active 18- to 35-year-olds report having experienced this; a generation ago it was so niche that pollsters did not bother to ask about it. Mostly it is young men choking young women; sometimes, alarmingly, without prior consent.\n\nFor many worried parents, that ends the argument. But reality is muddier than the simple morality tale told by anti-porn campaigners. \"Choking\" refers to a range of acts, including light pressure on the neck, that some consenting adults find pleasurable. Evidence that porn is what made it so widespread is weak. Young people hear about sex from a variety of sources, including their peers. Under-18s in Britain are already barred from accessing porn sites, but tech-savvy ones have found ways round the age-verification system—and will find ways round the new ban, too.\n\nThe idea that the young can be prevented from hearing about kinks is implausible. Some of the acts whose depiction the government is forbidding are so popular that they appear in pop lyrics. Doja Cat, an American rapper with more than 50m monthly listeners on Spotify, offers lyrics such as: \"Spank me, slap me, choke me.\"\n\nRestrictions on free speech should be rare, narrow and clearly defined. No one doubts that governments should ban child pornography, and that this ban should be vigorously enforced. But in general people should be allowed to film acts that are legal, even if many voters find them repulsive.\n\nBritain's new law fails the test. It is both broad and unhelpfully vague. The government has not defined the acts that will be illegal to depict. Instead it expects courts to decide on a case-by-case basis. But Britain's overburdened state will find it hard to police the many difficult-to-judge edge cases that will emerge. In an industry enamoured with terms like \"mummy\" and \"daddy\", how will judges be able to decide what constitutes a depiction of incest? What about whether a hand on a consenting adult's neck constitutes strangulation? Or when fellatio crosses the line into suffocation? Courts have many more important things to do than to debate such matters, including hearing cases of actual sexual assault.\n\nSince possession of banned content is punishable by up to two years in prison, the new rules will also dilute what it means to be a sex offender. Such an important label loses value when it can be applied both to paedophiles and those harbouring a stepmum fantasy.\n\nRather than trying ineffectually to prevent the young from learning about risky acts, governments should be ensuring that they are taught about safety, consent and how to talk frankly to prospective partners about what the other person does and does not want. Sex education in most countries is dismal. In Britain it is better, but still has room for improvement. If children do not learn about sex and relationships from reliable sources, they will depend on unreliable ones.\n\nPornography is an unpopular thing to defend. But Britain has become too willing to ban anything pearl-clutchers dislike, from plastic straws to noisy protests. A ban on kinky porn may please moralists, but it should alarm anyone who cares about freedom of speech or government overreach. ■","words":617},{"id":"eco-2","title":"El Salvador's gangbuster tries his luck in Haiti","full":"Few places on Earth are as miserable as Haiti. The last elected president was tortured and shot dead in his home in 2021. Since then, gangs brandishing military-grade weapons have wrought havoc.\n\nThey have taken over large swathes of territory in and around the capital, setting up roadblocks, terrorising residents and extorting \"taxes\" from them. At least 16,000 people, mostly civilians, have been killed, and over 1.5m displaced. Life expectancy is the shortest in the Americas. Ill-funded UN-backed forces sent to quell the violence have struggled. A UN \"Gang Suppression Force\" was approved in September last year, but only about 2,000 of the 5,500 soldiers it was promised have arrived, and they rarely venture out from their base.\n\nThings are so bad that it is tempting to welcome almost any determined outsider who wants to impose order. Nayib Bukele, El Salvador's president, has just sent over 2,000 Salvadoran soldiers to Haiti. His contingent outnumbers the UN's forces. Mr Bukele is a brutal strongman but widely admired in the Americas for his crime-busting. Other countries have pledged logistical support for his intervention, including Colombia and the Dominican Republic, which shares an island with Haiti. President Donald Trump, who wants to see the region's gangs smashed, appears to have given Mr Bukele the nod.\n\nMr Bukele says his aim is to recover four Salvadoran air-force technicians who were working in the UN's Gang Suppression Force when they vanished (and were perhaps killed) in an ambush last month. But 2,000 troops does not sound like a mere rescue mission. More probably, he wants to burnish his reputation, by showing that his record of suppressing gangs at home in El Salvador can be extended abroad. Mr Bukele once bragged that he was strong enough to fix Haiti. In social-media posts he boasts he can \"finish off\" its gangs.\n\nForeign military interventions have a mixed record in Haiti. Previous UN efforts failed to calm the mayhem and sometimes added to it. A big worry about Mr Bukele's mission is that its aims are unclear. Will the Salvadorans kill some gangsters and leave quickly, or occupy parts of the country? Will they work with other foreign forces and the local army and police? Today's picture is confused, including not only the UN and the Haitian security services but also Vectus Global, a private military firm run by Erik Prince, an American with links to Trumpworld, who was hired by Haiti's government to fight the gangs with drones. The UN frets that its role is being usurped.\n\nMr Bukele is wrong if he imagines Haitian gangs are like their less scary counterparts in El Salvador. Back home Mr Bukele brought down the murder rate by locking up hordes of young men, almost 2% of the total population, without due process. (Trials, if they happen, are of hundreds of suspects at once.) By tossing aside the rulebook while also quietly negotiating with gang bosses, he made his country safer with remarkably little bloodshed: only four police officers died in the first 14 months of his crackdown. Haiti, by contrast, is more like a warzone. Gangs are stronger, the state is weaker and prisons are notorious for escapes. Victory here would be more akin to winning a civil war.\n\nMr Bukele may end up doing some good in Haiti, especially if he persuades others to send more peacekeepers. But he needs to make clear whether his soldiers will work with the UN or do their own thing. The UN could help with vetting and training, and discourage abuses against civilians. Yet Mr Bukele may prefer his own gloves-off approach. His opacity is troubling. He should spell out his intentions—and remember that it is easier to start a fight than to end one. ■","words":624}]},{"key":"China","label":"China","articles":[{"id":"cn-1","title":"Hit podcasts reveal the angst of China's youth","full":"In 2007 David Brooks, an American columnist, suggested that the period from adolescence to adulthood should be called the \"odyssey years\", alluding to the hazards of the voyage described in Homer's epic poem. This year the term's Chinese translation, aodesai shiqi, has turned viral online in China. Young people use it to describe the torments they face on life's journey including securing a job, finding a partner and getting on the housing ladder. State media, forever striving to sound upbeat, offer little guidance. Instead, growing numbers are turning to an independent and remarkably feisty forum: podcasts.\n\nOn his hit show, \"Qingdao Kuaima\", Fu Yu offers words of comfort. \"The odyssey years can transform the trivial, trial-and-error nature of life into a heroic, epic-like trajectory of personal growth,\" the 34-year-old tells his half-million listeners. It was reassuring to hear him explain why young people are insecure, a fan commented.\n\nAfter a slow start, China's podcast industry has boomed in recent years. It is still small compared with America's, but it is tapping into huge demand from angst-ridden youngsters. Enthusiasts call 2020 \"year zero\". That was when China's first big podcast app, Xiaoyuzhou, or \"Little Universe\", was launched. It made finding and hosting shows much easier. Now more than one in ten people in China, about 150m, tune into podcasts on Xiaoyuzhou, Himalaya and other Chinese apps, reckons the Chinese Podcast Association, an industry group. Users of Xiaoyuzhou listen for an average of 80 minutes per day; more than 80% are aged between 18 and 35.\n\nThough few podcasts are state-run, they still have to heed censors' guidelines. In public, no one may question the Communist Party's rule. But podcasts are changing the media landscape by providing room for more open discussion. State media shun mention of the love lives of gay and lesbian people; social media sometimes scrub references to the topic. Podcasts offer more freedom. They don't have to use coded language or euphemisms, says Huang Yalan of Jinan University. The government is suspicious of feminism, but many hosts are proudly feminist and eagerly discuss women's rights.\n\nThe slow-burn style of many podcasts gives them protection. Fifteen-second videos on platforms such as Douyin (as TikTok is known in China) are more likely to run afoul of censors because they need to make a striking point to attract viewers. People with the patience to listen to an hour-long show are unlikely to report transgressions, says Yi Yang, who co-founded JustPod, China's largest podcast-production firm.\n\nIn 2025 the most listened-to genre on Xiaoyuzhou was personal growth. Liu Hongxing, a data analyst in Beijing, likes a podcast of this type called \"Self-Evolution Theory\", which is the app's third-most-popular. She says it has introduced her to the idea of living the way she wants to. Previously young people thought self-improvement was about becoming cleverer, says Mr Yang. Recently it has become more about meditating, receiving therapy and learning to understand that life's problems are not all one's own fault.\n\nThe longer length of podcasts creates room for reflection, whereas short videos tend to oversimplify and stoke anger, says Mr Fu, the podcaster. \"Young people...are experiencing anxiety, confusion and pain,\" he says. But he refuses to join those who grumble about the privileges enjoyed by the older generation, who have spent much of their adulthood in years of staggering economic growth. Armed with a sociology PhD, he aims to help young people understand the forces behind their problems, such as finding a stable job or—for those who want to opt out of the rat race—deciding where to retreat.\n\nBlake Chen, the 33-year-old founder of a media company in Guangzhou, a southern city, says his generation has never been able to find its place. He believes the gap between young people and their parents is vast—much larger than that between their parents and grandparents. So the young seek guidance from peers. A popular podcast made by Mr Chen's firm discusses topics such as how to manage inter-generational conflict and whether to marry. Some hit podcasts are hosted by older professionals. Qian Jing, a professor, invites young people to call in with their woes, exuding authority as she tells them how to cope with burnout and find meaning in life. Zhang Chun, a psychological counsellor, describes her own podcast, which is also in the top 50, as collective therapy.\n\nIn a leafy district of eastern Beijing, Daxiao Café's free recording studio has hosted more than 200 podcasts about everything from psychology and women's health to running and books. Few presenters aim to make money (and few do): they simply enjoy airing views and connecting with others. But this may change—brands are eyeing opportunities. Giada, a luxury fashion firm, launched Xiaoyuzhou's top podcast called \"Flower on the Rock\", which features interviews with women. The host is Chen Luyu, often described as China's Oprah Winfrey.\n\nAs podcasts expand their reach, however, censors will pay more attention. Some apps already use artificial intelligence to screen content. In August regulators called for \"red lines\" to be drawn around podcast content and said it should uphold \"mainstream values\". One show sometimes posts short clips on Xiaoyuzhou saying an episode cannot be uploaded for \"technical reasons\"—meaning, presumably, problems with censors. But it tells listeners how to find the podcast elsewhere. ■\n\nSubscribers can sign up to Drum Tower, our new weekly newsletter, to understand what the world makes of China—and what China makes of the world.","words":903},{"id":"cn-2","title":"China and Taiwan are fighting over Sun Yat-sen","full":"On both sides of the Taiwan Strait, there are many roads, districts and schools named after the father of modern China: Sun Yat-sen, the country's first president after a republican revolution in 1911. Ten years ago, when President Xi Jinping urged \"all Chinese who revere Mr Sun Yat-sen\" to unite, the fight over his legacy was not so fierce. Now, ahead of the 160th anniversary of his birth on November 12th, cross-strait relations are far more tense. Sun has become a political lightning rod.\n\nAcross China, the government has been whipping up Sun mania. Exhibitions, concerts and seminars praise Sun's devotion to \"revitalising\" a poor and weak China. Mr Xi is expected to address a decennial Sun-themed pow-wow in Beijing. Of Sun's \"Three Principles of the People\" (nationalism, democracy and welfare), Mr Xi stresses the first. He invokes Sun's concept of national unity to promote his own aim of unifying Taiwan with the mainland. At the 150th anniversary of Sun's birthday, Mr Xi vowed to \"continue to fight for the revitalisation of China\".\n\nTaiwanese officials are pushing back. This year they warned the island's people not to attend China's commemorations. In October the government's Mainland Affairs Council said it would not allow serving or former officials to join the gathering in Beijing (in 2016 about 30 retired Taiwanese generals took part in the corresponding celebration of Sun's birthday). \"What are Taiwanese officials afraid of?\" People's Daily, the Chinese Communist Party's main mouthpiece, asked in a recent column. They are \"terrified\" that more Taiwanese will realise their \"future development lies in a strong motherland\", it fumed.\n\nBut there is another tension: inside Taiwan. The ruling Democratic Progressive Party is not nearly as pro-Sun as the opposition Kuomintang (KMT). Sun, after all, founded the KMT in 1912 (the party fled to Taiwan in 1949 after losing a civil war with the Communists). Earlier this year, China criticised Taiwan's plan to remove politicians, including Sun, from banknotes as an attempt to \"erase Chinese national identity\". There is sympathy for that view in the KMT. Much less so among young Taiwanese—while China's calls for \"national reunification\" have been growing louder, many have been leaving Sun's orbit.■\n\nSubscribers can sign up to Drum Tower, our new weekly newsletter, to understand what the world makes of China—and what China makes of the world.","words":387},{"id":"cn-3","title":"With an eye on America, China is beefing up its AI-controlled labs","full":"In a laboratory in Shenzhen, a city in southern China, hundreds of mechanical limbs dance alongside each other in search of scientific discoveries. Few humans are involved. Instead the machines are directed by artificial intelligence. An AI model devises a hypothesis, instructs robots to test it and records the results to improve its next experiment. The autonomous facility, which is owned by a drug-discovery firm called XtalPi, runs around the clock to discover new medicines. During a visit early this year, China's prime minister, Li Qiang, gushed that innovation like this was \"the key to winning the future\".\n\nIf China is to win, the loser would presumably be America. Both countries are competing to build and apply AI technologies as fast as possible. Scientific discovery may be the most important arena for this race: inventions can improve lives as well as boost a country's economic and military power. In March China's new five-year plan called for faster exploration of AI-driven ways of doing science as part of a broader push to \"seize the commanding heights in the industrial application of AI\".\n\nAs often in industry, the government is heavily involved. It is building what it calls an AI-for-science \"stack\" by linking the specialised datasets, models and computing power that are needed by firms to run autonomous labs. Experts hope these \"self-driving\" facilities will make research faster, cheaper and far more productive. China's labs are unlikely, for now, to produce big scientific breakthroughs. But they could supercharge Chinese manufacturing. Officials say they will reduce dependence on Western technology. They also hope these efforts will give China an edge in the AI race. America should pay attention.\n\nStacks like this have two layers. The first is the brains. In April the Chinese Academy of Sciences launched a platform, often dubbed an \"AI scientist\", that is available to hundreds of universities and laboratories in China. It is called ScienceOne (the Chinese name is Panshi, meaning \"Bedrock\") and resembles a chatbot. It includes models, or agents, trained on academic reports and non-text data, such as waveforms used to measure seismic vibrations. They can perform hundreds of tasks, like working out the sequences of amino acids in proteins, state media say. China's scientific models still tend to lag behind America's. But a researcher at the University of Hong Kong who uses ScienceOne praises its bundle of scientific datasets, AI agents and computing power. \"I don't see anything like it in the US,\" he says.\n\nThe second layer is the brawn. Advances in applied science need hands-on experiments. Robotised labs have existed for decades, but they require humans to analyse data and refine experiments. AI models can take over the drudgery. They can learn from the results in real time and continuously tweak their approach. Last year XtalPi used its autonomous lab in the discovery of a molecule that could be used for treating a form of stomach cancer that grows in scattered clusters of cells. The firm generated millions of possible molecules and whittled them down to hundreds of candidates before testing the remaining ones on lab-grown tissue, using robots.\n\nChina is watching America closely. It stepped up its stack-building after President Donald Trump unveiled a similar plan late last year: the \"Genesis Mission\". This also involves the government-led creation of AI platforms to test scientific hypotheses and automate experiments. Many AI researchers believe that labs full of non-human AI scientists could one day churn out everything from cancer cures to hitherto intractable proofs in physics. \"This is one area where Chinese policymakers see eye-to-eye with the American AI labs,\" says Kyle Chan of the Brookings Institution, an American think-tank.\n\nBoth countries have good reasons to involve the state. AI scientists need to be trained on large sets of data such as weather patterns and the results of past experiments. Governments, through national laboratories, are often the biggest keepers of such data. They are also well-placed to provide researchers with access to advanced computing power.\n\nBut there are differences between automated labs in America and China. In America they have been showered with venture capital: about $1bn of it last year. Recipients have mainly been startups offering speculative, eye-catching research, such as in the creation of room-temperature superconductors. Dreaming big helps them raise money, says Charles Yang, formerly of Renaissance Philanthropy, a charity that helps donors fund scientific research. In China, firms with automated labs are usually less ambitious. They like research that can quickly generate profit.\n\nChina's use of AI in scientific research is often factory-like. XtalPi's labs \"work 24/7 and the basic cost [once they are up and running] is electricity,\" says Shi Xuekun, one of the firm's managers. The company now serves 17 of the world's 20 largest pharmaceutical companies. China's biomedical industry is growing fast: last year about half of all drugs licensed globally, by value, were from China, according to Goldman Sachs, a bank—up from 21% in 2024. Smart labs are likely to account for a growing share. In March Eli Lilly secured rights to develop and sell potential drugs from Insilico Medicine, a Hong Kong-listed firm that uses automated labs. The deal could be worth up to $2.75bn.\n\nMakers of industrial materials are also likely to benefit. China is a powerhouse in materials science, publishing four times as many papers in the field as America, according to Nature, a journal. In April researchers at City University of Hong Kong showed how an automated lab could design and test molecules for light-absorbing solar cells. Robots could make the cells just as well as humans, and with far more consistency in their output. At present the average human researcher in a lab might produce one or two new cell-prototypes daily. In a joint venture with JinkoSolar, an industry titan, XtalPi says that it is building an automated facility that will test 1,000 a day.\n\nAI experts differ over the steps needed to create \"artificial general intelligence\" (AGI)—in essence, AI on steroids. Some of China's AI stars including Zhou Bowen, the boss of Shanghai AI Lab, a government-backed institute, believe models must first master sciences, and that automated labs will help them do so. Mr Shi hopes that's right: smarter models could predict the results of the experiments they design, he says. Forget humans. He may then need fewer robots, too. ■\n\nSubscribers can sign up to Drum Tower, our new weekly newsletter, to understand what the world makes of China—and what China makes of the world.","words":1075},{"id":"cn-4","title":"A new path to political power in China runs through state firms","full":"In much of the world the age of 55 is when an official might start to contemplate life after work. In the rarefied air of China's elite politics, it is roughly when careers get interesting: quinquagenarians are the sprightly young things who are just beginning to break into the upper echelons. After a reshuffle that ended last week, eight of China's 31 provinces now have governors born in 1970 or later. None of these leaders, mind you, is so green as to have been born since 1973.\n\nIt is worth looking at them more closely. Not because any will run China soon (if ever, given Xi Jinping's grip), but because, as top performers of their cohort, they reveal traits that the Communist Party values in its leaders today. A common feature is extensive experience in state-owned companies.\n\nSix of the eight governors from this youngish group rose through various appendages of China Inc. Liu Jie, now in Zhejiang province, worked for 16 years at a steel company. Guo Ningning, a rising star in Fujian, toiled for 24 years in state banks. Xie Weijiang, currently in Hunan, spent 23 years in the power sector. Of the three 1970s-born ministers in Beijing, two also worked in state-owned firms. Altogether, nearly three-quarters of the government's highest-ranking whippersnappers today are graduates of China Inc. It is starting to look like Government Sachs, with Chinese characteristics. One such characteristic, to be clear, is that the revolving door really only turns from state firms to the government, not the other way. And the corporate types still have to wait in line: the eight governors born in the 1970s all serve under provincial party secretaries born in the 1960s.\n\nRising through state firms is a change from how officials previously climbed the greasy pole. The classic path was to pay your local dues, starting in a county, becoming a small-town mayor and so on until reaching a provincial perch. Another was to get fast-tracked through the Communist Youth League. A third was the technocratic channel, especially for engineers: they might go from working on a dam to the industrial ministry and then to higher leadership. Each had drawbacks. The local route could be parochial for a global superpower. The youth league came to be seen as an arrogant faction—not least by Mr Xi as he consolidated his power. And pure engineers, most useful during China's intense phase of building, had seen their star wane in Beijing.\n\nEnter what Li Cheng of the University of Hong Kong calls \"technocrat 2.0\". Over the past five years officials with specialised training have staged a comeback. Engineers are in the mix, but their degrees are wide-ranging, from life sciences to quantum computing. A large number have also studied economics and finance. And state-owned firms are the ultimate finishing school.\n\nSome officials have always migrated from state businesses to politics. But in the past decade the door has opened more widely. In 2019 the party reworked its appointment system, creating a mechanism to shepherd more people, more quickly, from state companies into government. In 2022 Mr Li counted 86 officials born in the 1970s who had made it by then to vice-level provincial posts; 54% had worked in industrial companies or financial firms.\n\nWhy is the party turning to state executives? State firms—coddled, bloated and slow—are hardly models for the dynamic economy that the country's leaders want to build. Politically, however, there is much to recommend them. Truly national firms are not beholden to any one place. Their bosses have managed complex issues, and many know the world beyond China. Lu Dongliang, now governor of Shanxi, secured access to resources in Africa and South-East Asia as head of Chalco, the listed arm of the world's biggest aluminium producer. Zhuge Yujie, the new governor of Qinghai province, ran Shanghai's port, the world's busiest. Feng Chucheng of Hutong Research, a consultancy in Beijing, thinks the rise of state executives reflects the party's preference for leaders who, it hopes, can bring both technological self-reliance and economic resilience.\n\nDipping into state firms also broadens the talent pool for the party. It has gaping holes to fill. At an important plenary meeting last week, just 74% of the party's Central Committee (which began with 376 members) showed up in Beijing. That was the lowest attendance rate in the post-Mao half-century, confirming the extent of Mr Xi's purges. Some observers think these removals could come back to haunt Mr Xi by thinning out his bench for future appointments. In reality they are unlikely to be a constraint: China has no shortage of strivers eyeing powerful posts. It has even more now that state employees are also in the running.\n\nMr Xi's dominance can be stifling for the bureaucracy: loyalty to him is a prerequisite for advancement, which saps officials' initiative and derring-do. Yet the conveyor belt from state firms to high office shows that loyalty is a necessary, not sufficient, condition. To truly get ahead officials need to have demonstrated expertise and competence, not just ideological bona fides. In that sense the renewed emphasis on technical abilities is commendable.\n\nBut in another way it is a worrying portent for the economy. During China's decades of turbocharged growth, much of its energy derived from the retreat of the state sector and the rise of private companies. Under Mr Xi the tide has shifted. Private entrepreneurs are struggling while state firms, once again favoured by state banks and central planners, are emboldened. The systematic recruitment of state executives into government only adds to the momentum. Private companies must form party cells, but no private entrepreneur has ever become a full member of the Central Committee. For ambitious graduates entering the workforce, the signal is clear: throw your lot in with China Inc.■","words":962}]},{"key":"Asia","label":"Asia","articles":[{"id":"as-1","title":"Cheap data is great for Indians but not for India's reputation","full":"\"BITCH LASAGNA\" is the name of a song by PewDiePie. It is also a two-word social history of the relationship between India and the internet. For five years Mr Pie, a Swede whose real name is irrelevant, was the owner-operator of YouTube's most popular channel. In early 2019, after several months of back-and-forth, he was decisively overtaken by T-Series, a Bollywood studio.\n\nIn the run-up to his defeat the Swedish streamer posted what his fans described as a \"diss\", or insult, track and what anyone else would consider to be bordering on bigotry. Its lyrics include references to open defecation, ridicule of Indian languages and a meme about \"bobs or vegana\" (don't ask). The song's title alludes to a Facebook Messenger screenshot of an Indian man requesting unclothed self-portraits from a woman and, on being ignored, hurling the presumably auto-corrected epithet at her. The internet really does bring out the worst in everyone.\n\nMr Pie's battle with T-Series marked a hinge point in India's internet adoption. In 2016 Mukesh Ambani, an industrialist who inherited a petrochemical company, took literally the maxim that \"data is the new oil\" and launched Jio, a mobile network with rock-bottom prices and generous data allowances. Almost overnight the share of India's population covered by a modern mobile-broadband network jumped from 4% to 74%. A price war followed. Internet users doubled in just three years from a sixth of India's people when Jio launched to a third when T-Series triumphed, rising to over two-thirds today. A billion Indians use the internet, or three for every American.\n\nNot satisfied with bringing Indians online, Jio, which in October went public in one of the country's largest listings, also gives them something to do once they get there. Its streaming service, Hotstar, has more than 450m monthly users, well ahead of Netflix or Amazon's Prime Video. But neither Jio nor anyone else has managed to build a social space Indians prefer to Western ones. Indians are the largest nationality on YouTube, Instagram and Facebook and a significant minority on X, Reddit and Snapchat. Their influx onto these platforms has not been great for India's image in the world.\n\n\"Bitch Lasagna\", though tasteless, reflects a common stereotype online of Indian men as forever propositioning women on social media. The idea of India as an unsanitary place, too, is depressingly common. And Indians have of late acquired a reputation as fierce nationalists with thin skins and foul mouths. As one viral post on X put it, \"Never invade Russia in winter. Never attack India by Twitter.\"\n\nSome of the criticism is overblown. Crude men and noisy nationalists exist everywhere, but the sheer scale of the Indian contingent makes them more noticeable. Some of it is the result of India's openness. Because Indians use the same platforms and often post in English, the country's flaws are more visible than those of other countries.\n\nAnd some of it may well be cynical. Social-media algorithms prioritise content that elicits strong reactions. YouTube travel videos that portray India as filthy and dysfunctional often attract millions of views. Instagram has lately been flooded with AI-generated videos showing street-food vendors cooking in appallingly unhygienic conditions. Ragebaiting Indians can be a sound commercial strategy, as the 300m-plus views of \"Bitch Lasagna\" demonstrated.\n\nAll of which obscures just how fun and indeed funny India's internet can be. Influencers and YouTubers make material for all tastes. Social-media memes are the currency of youth slang and infiltrate the mainstream, too. This year's \"cockroach\" youth protests started life as an online joke. It is only a matter of time before India's popular culture starts breaking through more widely. Some of it already has. A dance move in a Telugu song called \"Naatu Naatu\" went viral in 2022 and later won an Oscar. Early this year an extended joke by Azeem Banatwalla, a stand-up comedian, resonated globally. As more culture crosses over, India's image online will change too.\n\nUntil then, India's reputation provides fodder for content. Mr Banatwalla's gag was a list of all the traffic violations you can commit in Mumbai for the price of a speeding fine in Norway. Somnath Padhy, another comic, has a routine riffing on how \"there are one billion websites in the world [and] I think Indians have commented on all of them.\" And Reddit has a community dedicated to \"the chaos unleashed by cheap internet\". It is called \"Jio was a mistake\".■","words":736},{"id":"as-2","title":"Dead Starlink terminals in Myanmar are getting people killed","full":"UNDER BRITISH rule, Burma boasted the largest tungsten mine in the world at Maw Chi, near the border with Thailand. Decades of war and misrule have slashed the mine's output. But labourers working in small teams at Maw Chi still dig up the metal before sending it on to Thailand and global markets to make aeroplanes, missiles and semiconductors. That has made Maw Chi a prize in the war between the military junta which seized power in Myanmar in 2021 and rebels opposing it.\n\nTwo years ago rebels captured Maw Chi and started to put its revenue stream towards their war effort. The junta responded with occasional air strikes on the mine. Rebels countered by creating an ingenious early-warning system using Starlink, the space-based internet service that is run by SpaceX. When the junta launched an attack aircraft, a spotter near the airfield would alert civilians at the mine site to take shelter. But on September 1st that warning system failed. A jet bombed the mine at Maw Chi without any alert, says a local rebel commander, killing five and injuring six. One of the Starlink terminals used for the early-warning system had been cut off, leaving the miners in the dark.\n\nStarlink has become essential in parts of Myanmar riven by conflict or governed by rebels. The junta has turned off cellular services in many of these areas, leaving rebel armies and humanitarian organisations reliant on connections to SpaceX's satellites in low-earth orbit. The democratic government-in-exile uses Starlink to remotely run schools and hospitals in liberated areas, where too large a physical footprint would attract attention from the junta's air force. In these places Starlink is ubiquitous even though, on paper, the service is not available in Myanmar. Terminals are procured elsewhere and brought into the country illegally. Until recently, SpaceX has tended to turn a benevolent blind eye towards their use.\n\nThe episode at Maw Chi was not an isolated incident. Rebels, aid workers and teachers say that some Starlink terminals across Myanmar have been shut down by SpaceX since July. Many others are still up and running, they say, and it is not clear how the company has decided which to cut off. SpaceX has not offered any public explanation, but it has told some aid workers in Myanmar that, under pressure from the American government, it is trying to cut off scam centres based in the country that rely on its services to carry out their transnational frauds. A State Department spokesman says that it is working with private firms and their financiers to combat scam centres, while \"preserving access\" for those using the technology for \"legitimate purposes\". Rumours of a \"whitelist\" maintained by the State Department have been swirling among aid groups, but no one seems to know what they need to do to be added to it.\n\nFor reasons that remain murky, SpaceX had recently throttled Starlink connections in Ukraine, reportedly after talks between Elon Musk, its founder, and President Donald Trump. Its motives in Myanmar are also obscure. Analysts have seen no signs of drones using Starlink in Myanmar, where rebels are on shoestring budgets. New terminals smuggled into Myanmar could cost as much as $8,500 each, say aid workers. That is far too pricey for the poorly funded rebels to simply strap one to a drone made to explode on impact.\n\nBut the terminals have been invaluable in letting democratic forces offer services in areas they control. Hospitals under the National Unity Government (NUG), the pro-democracy government-in-exile, use it to consult specialists abroad. And students across Myanmar use it to attend NUG schools remotely. As terminals go dead, students are dropping out. The head teacher at an NUG school says that of 270 students who started the year there, 40 have stopped attending.\n\nPerhaps the most vital use of Starlink has been in early-warning systems like the one at Maw Chi. In a curious twist, some of these systems, say former American officials, were secretly set up by USAID in 2024. Even before Mr Musk put the aid agency through the wood-chipper last year, SpaceX had doubts about this. \"They had lots of questions about the legal implications of allowing their terminals to be used in Myanmar,\" says a former American official who was involved. In particular, they say, SpaceX was wary of letting its terminals be used for lethal purposes. Shutting them down is also proving lethal. ■\n\nFor exclusive coverage of Asian politics, economics and security, sign up to Asia Bulletin, our weekly subscriber-only newsletter.","words":755},{"id":"as-3","title":"Japan prepares for its next natural disaster","full":"AMONG THE countries most prone to natural disasters, Japan has a habit of spawning new bureaucracies. Yet, despite in recent years launching agencies for digital technology and for children and families, its governments have consistently batted away a more obvious idea: to set up a disaster agency. That changed on November 2nd. At the new body's launch, Hosono Goshi, its freshly appointed minister, stood before a backdrop with a colourful logo resembling the character for \"prevent\" in bosai, or disaster prevention. He vowed to make Japan \"the world's most disaster-prepared nation\", ready for calamities \"on the scale of a national crisis\".\n\nSitting at the junction of four tectonic plates (see map), Japan suffers around a fifth of the world's earthquakes of magnitude 6 or greater. The earthquake and tsunami in 2011 in Tohoku in the north-east of the main island of Honshu, which triggered a nuclear meltdown, are strong memories. In 2024 the Noto peninsula was devastated by a magnitude 7.6 earthquake, and another powerful one struck Kumamoto this summer. Torrential rains and floods, intensified by climate change, pose a growing threat, too.\n\nYet even these calamities may be dwarfed by what lies ahead, says Kawata Yoshiaki, a disaster-management expert at Kansai University who advised the government about the agency. Seismologists warn of two catastrophic earthquakes; their statistical model suggests a 70% chance of a magnitude 7 or higher quake directly hitting the Tokyo metropolitan area in the next 30 years. Over the same period another feared megaquake along the Nankai Trough off Japan's Pacific coast has a 60-90% probability. In the worst case, such a quake could kill nearly 300,000 people, force 12.3m to evacuate and cause ¥292trn ($1.8trn) in economic losses, equivalent to more than 40% of Japan's annual GDP. Mr Kawata expects long blackouts and broken supply chains that would leave vast numbers short of food.\n\nJapan is already a global leader in disaster preparedness, especially in hardware such as earthquake-resistant buildings and early-warning systems. With the new agency, the government hopes to streamline its software and put more resources towards preparing for the bigger and more complex disasters that may lie ahead. Until now, responsibility for disaster management has been distributed across different ministries and levels of government. The prime minister oversaw such efforts with support from a small unit in the Cabinet Office, staffed by officials seconded from other ministries, who rotate out every few years. Ueshima Yasuhiro of Japan Platform, a network of aid groups, likens the government's previous approach to \"putting on a Band-Aid\" whenever disaster strikes, rather than treating underlying risks. The new agency, with around 350 staff, aims to boost preparedness by building up institutional knowledge about dealing with a range of potential disasters.\n\nCreating a single centralised body should help address one of the Japanese system's biggest weaknesses: a notoriously siloed bureaucracy that struggles to co-ordinate across institutions. Consider hospitals, says Mr Kawata, pointing out that they could lose power during a big Tokyo earthquake, putting many thousands of patients at risk; planning evacuations would involve the health ministry. The fisheries agency, meanwhile, could help fishing communities protect themselves against tsunamis. While Mr Hosono will handle day-to-day operations, Takaichi Sanae, the prime minister, will officially head the agency, which will also have powers to make suggestions to other ministries.\n\nClimate change and more extreme weather are demanding vigilance towards less familiar threats. Tokyo experienced 37 consecutive days of rain until the beginning of October this year, the longest stretch since records began in 1886. In nearby Chiba, record rains wreaked havoc in August, followed by a flood weeks later. Waki Yuichiro, a 52-year-old resident, whose house was flooded and car ruined, says he had prepared for earthquakes, \"but I never imagined flooding would affect us…In the future, we have to prepare for the unexpected—anything can happen.\" Tanaka Yasuo, a volunteer who visits Chiba to repair air-conditioners damaged by the flooding—essential appliances during Japan's sweltering summer—says that in the past he used to have time to rest between disasters; now they come so frequently that \"I can barely take a break\".\n\nJapan's demography, with its large number of old people, makes it vulnerable in other ways. One growing concern is saigai kanrenshi, or disaster-related deaths: people who survive the initial catastrophe but later die from prolonged stress or deteriorating health during evacuation. After an earthquake in Kumamoto in 2016, such deaths accounted for more than 80% of the toll. In Noto, too, they made up 70% of deaths. Poor conditions in evacuation centres, where survivors still often sleep on crowded gymnasium floors and without adequate sanitation or nutritious food, can make things worse. Such evacuation centres have hardly improved over the years. Ishiba Shigeru, a former prime minister who championed the disaster agency, blames a culture that prizes perseverance and \"idealises disaster survivors who endure hardship\". Sugano Taku of Osaka Metropolitan University points out that municipalities with inadequate resources are being left to handle them on their own; the new agency is supposed to offer them guidance and support.\n\nBut it is just one part of Japan's approach to disasters, which rests on three principles: kojo, government assistance; kyojo, mutual help; and jijo, self-help. In Kumamoto, Fujino Tatsuo and other volunteers clambered onto damaged roofs, removing heavy kawara, traditional Japanese tiles that could fall in another earthquake. Nearby, Miyabara Yukimi's home had collapsed, though her whole family miraculously crawled out of the rubble. She and her husband spent weeks sleeping in a lorry before volunteers helped them build a makeshift shelter. \"It feels like we lost everything—but we still have to make the first step,\" says Ms Miyabara.\n\nOn its first day the new disaster agency kicked off by issuing an \"emergency request\" urging local governments to strengthen disaster preparations and citizens to take precautions themselves. Mr Hosono stressed that jijo remained essential. \"We cannot achieve this by relying on the government alone,\" he said of his ambition to make Japan even more of an example to the rest of the world in disaster preparedness. He advised citizens to secure furniture against earthquakes and stockpile at least three days' worth of food and water—preferably, enough for a week. ■\n\nFor exclusive coverage of Asian politics, economics and security, sign up to Asia Bulletin, our weekly subscriber-only newsletter.","words":1046},{"id":"as-4","title":"The fight for the soul of the Australian right","full":"Senator pauline hanson swaggered into Secret Harbour on October 30th like a general inspecting troops in newly conquered territory. It was her first visit since One Nation, her ragtag populist party, won a by-election in the coastal town. The race for a seat in the Western Australia state parliament was the latest in an \"orange wave\" of wins for One Nation in elections this year. But Secret Harbour is special: the town sits inside the federal constituency of one of Ms Hanson's most formidable opponents, the special-forces veteran and Liberal Party frontbencher Andrew Hastie.\n\nOnce dismissed as a gadfly, Ms Hanson is now a real force. In January One Nation overtook the Liberals in the polls and still has a lead. It is neck-and-neck with the governing Labor Party. It still lacks much of the scaffolding of a national organisation, but Ms Hanson has shown that she can turn voter anger at the major parties into seats. So her party has a real shot at replacing the Liberals as the official opposition at the next election in 2028, and an outside one at forming the next government.\n\nThe election in February of Angus Taylor as the Liberals' new leader has not boosted the party's fortunes. Mr Taylor, attacked by Ms Hanson as a \"smarmy management consultant\", has mostly avoided confrontation with her. But Mr Hastie has taken her on directly. Some Liberals argue that, against her, he would be a stronger leader than Mr Taylor. \"It was obvious that the better choice would have been Hastie,\" says Malcolm Turnbull, a former prime minister and Liberal leader. \"I'm sure he'll lead the Liberal Party some day—if he doesn't lose his seat.\"\n\nThat Mr Hastie might face two such different futures is largely a consequence of one decision that he made: to testify against a fellow soldier accused of war crimes. That has led to an emotional debate on the right, one which Ms Hanson has been eager to use to her advantage. \"I was subpoenaed, and then under oath required to tell the truth,\" Mr Hastie tells The Economist. \"Would you rather me be in contempt of court and lie?\"\n\nWildly divergent answers to that question have this year been tearing the Australian right apart. Mr Hastie is now under attack from Ms Hanson and her powerful allies like Gina Rinehart, a mining magnate, and Kerry Stokes, a media baron, some of them once supporters of the Liberals. In July Ms Hanson published a video calling Mr Hastie a \"traitor\" and encouraging Liberals to abandon him. The strategy seems to be working. Tony Abbott, the president of the Liberal party and another former prime minister, has distanced himself from Mr Hastie. They are trying, he says, \"to destroy me personally\". But the stakes for the Australian right are far higher than that.\n\nThe veteran of the elite Special Air Service regiment is an unlikely hate figure for the populist right. Mr Hastie has led a push over the past year to drag the Liberal Party to the right on issues that animate populists. His call for lower net migration is now party policy. He is against women in combat. Like many populists, he bemoans the demise of Australian manufacturing, arguing for a more active industrial policy. But he parts ways with them when it comes to the rule of law.\n\nMr Hastie links his stand against war crimes to his Christianity. He testified against a fellow soldier, he tells supporters, under an oath before God. He is more open about his faith than most Australian politicians: \"I learned more about politics and leadership watching my father [a Presbyterian minister] at church than anywhere else.\" But \"I am not a Christian nationalist.\" By contrast, Ms Hanson has called Australia a Christian country, yet dodged questions about her own beliefs.\n\nThe lessons from his father's church sometimes point in unexpected directions. Mr Hastie opposes abortion and gay marriage, but rejects Ms Hanson's call for a \"monocultural\" Australia. Worse yet, in his view, are her fans' calls for racial criteria for immigrants. He recalls his father's church in Ashfield, then one of Sydney's most diverse suburbs, which held services in several Asian languages because \"everyone is made in God's image\". Immigrants, he says, should be chosen for their values and skills rather than their ethnicity.\n\nThat same philosophy has allowed Mr Hastie to make friends across the aisle. Take Senator Penny Wong, the foreign minister and a Labor stalwart. Ms Wong, gay and born in Malaysia, might seem an unlikely partner. But the two worked well together when Mr Hastie was a backbencher and Ms Wong was in opposition. \"It's always been clear to me…that he is one of the few on his side who believes there is a national interest above partisanship,\" says Ms Wong. \"While Andrew isn't really where modern Australia is, he understands that you can't out-Pauline Pauline.\"\n\nThat hints at a potential way through for Mr Hastie. Once known as the Liberal Party's rising right-winger, his fight with One Nation is broadening his appeal. He has no plans to give up his conservative bona fides, but he is seeking out new allies. Within his own party, once-critical moderate grandees like Mr Turnbull now offer cautious praise. At a fundraiser last month 80% of participants were new donors. And he has become a more frequent guest on public television and radio shows, whose viewers tend to skew centre-left. That could leave him in a stronger position to lead the Liberal Party in the future.\n\nBut first he must see off Ms Hanson's campaign to brand him among the conservative base as a traitor. He still looks to be under siege. The home-affairs minister has cited unspecified threats in advising police to upgrade security at his home and office. \"It's a bit unnerving,\" Mr Hastie says. \"But I'm a Christian. I pray about these things, and I'm at peace about it.\" ■\n\nFor exclusive coverage of Asian politics, economics and security, sign up to Asia Bulletin, our weekly subscriber-only newsletter.","words":1008}]},{"key":"Briefing","label":"Briefing","articles":[{"id":"br-1","title":"What will a lame-duck Donald Trump get up to overseas?","full":"DOUG SOSNIK, a former adviser to Bill Clinton, recalls the president's frenetic agenda during his final stretch in the White House. \"We talked about the schedule and how many more trips we could do—do you mind doing an 18-hour day?\" Mr Clinton was a man in a hurry. \"I've only got a year left in office,\" he observed. \"I've got the rest of my life to sleep.\"\n\nThe same clock now ticks for Donald Trump. He has been the defining protagonist of the past decade in American politics. But on November 3rd he became only the second term-limited president, after George W. Bush in 2006, to fight his final midterm election in control of both chambers of Congress and to lose both, shocking Mr Trump himself. \"Wow,\" he told the New York Times upon learning of his party's loss in South Carolina, a former MAGA stronghold. \"That's amazing.\"\n\nIn his final two years in office, Mr Trump will be embattled at home as he confronts his political mortality. Congress, which Mr Trump had rendered largely irrelevant while under Republican control, will swamp his administration with hearings and subpoenas on corruption and abuse of power. (\"Lawyer up,\" one congressman advised on X.) It will dare him to veto popular policies such as restoring health-care funding. Democrats will try to stop his vanity pursuits in the capital, too: his grand ballroom and his triumphal arch. But the area where he will continue to have the greatest, most unrestrained impact is overseas, where he will turn for monsters to slay and legacies to leave.\n\nMr Trump's foreign policy—from Venezuela to Greenland to Iran—has been radical and hyperactive. Now it could become more so. Mr Trump has unfinished business in Iran and Cuba that could drag America deeper into the Middle East and Latin America. His flirtation with great-power carve-ups, including summitry with Vladimir Putin and Xi Jinping, could herald a darker world order—and difficulties for Ukraine. His quixotic courtship of Kim Jong Un, North Korea's leader, could upturn American nuclear policy. All this will unfold as AI wizardry spirals towards artificial general intelligence, throwing up diplomatic and national-security challenges that will fall to Mr Trump to manage.\n\nAll this would be concerning enough for the world under a president who had a gift for diplomacy, a Herculean work ethic and a normal attention span. Mr Trump not only will have to do without those qualities, but he will also probably lose experienced staff who could help in a crisis—another feature of lame-duck periods. The president's adventures abroad over the next two years promise to be chaotic and unpredictable, if not necessarily fruitful.\n\nMr Trump will not be unique in searching for solace abroad as the end comes into sight. The Economist has analysed presidential travel records going back to Harry Truman. They show that presidents are typically much more active overseas in the last two years of their second terms (see chart). Mr Bush spent 50 days abroad in 2008, twice his previous annual average. After losing the 2006 midterms, he ordered a surge of military forces in Iraq against bitter opposition in Congress in the hope of salvaging a war that had gone badly awry. Barack Obama doubled his travel between the final two years of his first and second terms. His sweeping nuclear deal with Iran came the year after his own bruising in the 2014 midterms. \"Presidents by the end of their term are frustrated with the various constraints on them,\" says Yuval Levin of the American Enterprise Institute, a think-tank, who served in the Bush administration. \"And foreign policy is where there are fewest constraints.\"\n\nMr Trump, like an impresario who changes the act when the audience grows weary, is drawn to foreign-policy manoeuvres that confound his critics and, in his mind, demonstrate his strength. Mr Trump has long boasted of his diplomatic prowess, famously claiming that he would end the Ukraine war in a day—and, at a midterms rally on November 1st, that he would have won the Vietnam war in a week. Mr Trump's evident failure to win the war at hand, with Iran, therefore rankles with him. The two sides continue to skirmish, with America conducting what it described as \"defensive\" air strikes on November 2nd.\n\nUntil recently Mr Trump was leaning towards his third attack on Iran in 18 months (see map), in concert with Israel, to force it to fully reopen the Strait of Hormuz and limit its nuclear programme. That would trigger Iranian retaliation against Gulf energy facilities, consuming Mr Trump's attention for months to come. On October 28th Chris Murphy, a Democratic senator, said that he had received an intelligence briefing on America's war plans. \"I will just say this—their plan is insane,\" said Mr Murphy, noting that public reporting had pointed to the targeting of civilian infrastructure. \"It will lead to devastating escalation and the likely destruction of our commitment to the rule of law.\" (Three days later Mr Murphy went to hospital after suffering a stroke.) A person familiar with the planning says that Mr Trump was considering whether to strike Iranian oil tankers in Asia.\n\nIn recent days other sources say that Mr Trump has put these plans on ice, telling Binyamin Netanyahu, Israel's prime minister, that America will not back an Israeli attack. Israeli forces, which were ready for a strike, have paused their preparations.\n\nMr Trump will face opposition to fresh strikes from multiple sources. One is J.D. Vance, his vice-president—and a probable candidate for president in 2028—who, in a post on X on November 4th, explicitly blamed the midterms drubbing on the war and said voters wanted a different relationship with Israel. Another is Congress. Such is the scale of the blue wave and so detested is the war—on a par with the Vietnam war—that Democrats might withhold funding (and risk being accused of undermining the troops in the field). Even if Mr Trump chooses to escalate, America is unlikely to have the munitions, air-defence interceptors or political stomach for another protracted campaign. Mr Trump's aim is presumably to secure a deal that allows him to emerge from the fracas with the appearance of an honourable peace. Iran's leadership, conscious of Mr Trump's political frailty, is unlikely to fold easily.\n\nIf Iran is the first test of Mr Trump's diplomatic agenda, Ukraine is likely to be the second. Here the president's vengeful instincts present dangers. Mr Trump has repeatedly blamed Ukraine for the war, criticised the country's strikes on Russian oil refineries and belittled Volodymyr Zelensky, its president. So far American intelligence-sharing with Ukraine and arms sales via Europe have survived. When American negotiators unveiled a half-baked 28-point peace plan, in November 2025, Mr Trump's secretary of state, Marco Rubio, and European allies intervened to prune its worst parts. At each juncture, Mr Trump has stepped back from the breach of a complete abandonment of Ukraine and a definitive turn towards Russia.\n\nMr Trump may direct his ire once again at Mr Zelensky, should he conclude—wrongly—that Ukraine's strikes on Russian refineries were primarily responsible for the fuel-price shock that helped doom Republicans at the polls. In 2020 Mr Trump responded furiously after believing that China had misled him over the spread of covid-19. A similar sense of betrayal could translate into a more aggressive pressure campaign against Mr Zelensky personally and Ukraine as a whole, with the aim of forcing Ukraine's capitulation.\n\nAn early glimpse of Mr Trump's post-midterms mood may come on November 18th-19th, when he and Mr Putin visit Shenzhen, China, for an international summit hosted by Mr Xi. America's European allies fret that Ukraine will be on the menu. In recent months, Mr Trump has made concession after concession to Russia, cutting a deal to buy diesel and waiving sanctions in return for the release of an American prisoner, in part to lure Mr Putin to the negotiating table. Mr Putin may conclude that he will never again enjoy as pliant a partner as Mr Trump. But the Russian leader also believes that time is on his side, and that European support for Ukraine will ebb away. What is more, Democrats in Congress can be expected to hinder or block efforts by Mr Trump to give Mr Putin more ground on Ukraine—especially any deal that reeks of corruption.\n\nThe president may quickly lose interest (not for the first time) in the quagmire of Ukraine and turn his attention to another developing hot spot in his own hemisphere: Cuba. Since taking office, Mr Trump has squeezed Cuba's dictatorship economically, causing power cuts, food shortages and a collapse of health care on the island. In January 2026 the president decapitated Venezuela's government by abducting Nicolás Maduro, its leader. He is thought to be tempted by a similar model of light-touch regime change in Cuba.\n\nAmerica's economic warfare is intended both to weaken the regime and split the country's elite, potentially throwing up partners who might work with America, much as Delcy Rodríguez, Venezuela's acting leader, abandoned Mr Maduro. Mr Trump has made little secret of his goal. \"We'll take ​care of Cuba on our way back from Iran,\" he boasted on the campaign trail in October. That month Mr Rubio, a Cuban-American hawk, urged disaffected Cubans to work with the CIA: \"To those who seek to ​create positive change in Cuba—now is the time.\"\n\nMr Trump longs to be a president who achieves what his predecessors did not. He would relish being the leader who reversed the Cuban communist victory of 1959. But he is not a man for details. In Venezuela he has largely left the country's dictatorship in place, swapping its leaders and cutting grubby deals to secure its oil for American firms. A fudge like that would be far harder to pull off in Cuba, notes a person with knowledge of the administration's debates, because Cuba's diaspora—which is older and more established than Venezuela's—would make its wrath felt.\n\nIt would arguably help Mr Trump's chances of success in his foreign-policy endeavours if he had experienced staffers around him. But an exodus may be under way. Mr Rubio, who also serves as national security adviser, has quietly been exploring jobs in the private sector. (He may skip the 2028 presidential race, hoping for more favourable conditions in 2032.) Mr Rubio's departure would shift the balance of the administration, potentially leaving John Ratcliffe, the director of the CIA, as the most influential hawk in the cabinet.\n\nThe president may also lose his favourite man at the Pentagon. Many Democrats want to impeach Pete Hegseth, the pugnacious and divisive secretary of war. Hakeem Jeffries, the likely Democratic Speaker of the House, has not ruled it out.\n\nDemocrats may demand Mr Hegseth's ousting as the price of passing an $87.6bn supplemental bill including $67bn for the Department of War, which is in a deep financial hole. Presidents often seek scapegoats after an electoral pummelling. Mr Bush dumped Donald Rumsfeld, his defence secretary, after his midterm loss in 2006; Mr Trump sacked Jeff Sessions, his then attorney-general, after his party's defeat in the House in 2018.\n\nYet Mr Trump is more likely to respond with defiance than with contrition. There is speculation that Mr Hegseth could be shunted into the job of national security adviser or possibly appointed to the Senate seat for Tennessee that is to be vacated in January by Marsha Blackburn, who has been elected the state's governor. There, some note, he would enjoy a degree of protection from Democratic probes—including those into his deadly strikes on boats thought to be carrying drugs.\n\nEven if Mr Hegseth survives, Mr Trump's coterie of advisers has already begun to thin out. The national security council has been largely gutted, resulting in ad hoc and haphazard decision-making. Experts have been fired en masse, resulting in poor preparation for meetings and negotiations. Policy can swing on the whim of individuals or small groups, as Elon Musk, the founder of SpaceX and a former adviser to Mr Trump, showed when his firm appeared to cut off vital satellite communications to Ukraine during a row in October. Some of Mr Trump's envoys, both official and unofficial, blend diplomacy with the pursuit of lucrative business deals.\n\nMr Trump will also find it ever harder to gain the Senate's assent for new cabinet secretaries and other appointees, leaving officials in acting roles for long stretches. Susie Wiles, the president's chief of staff, who is widely viewed as a stabilising force in the White House, may depart after serving for longer than any of Mr Trump's first-term consiglieri. The ultra-nationalist agenda pushed by Stephen Miller, Ms Wiles's deputy, has proved to be an electoral liability. The quality of staff tends to fall during an administration, observes Mr Sosnik: \"You see a thinning of the herd, with the people coming in…generally a peg or two below the people that they replace.\"\n\nThat leaves an increasingly isolated, embattled Mr Trump looking for ways to shore up his legacy in the only way he knows: entirely ad hoc. It is not unusual for lame-duck presidents to roam the globe in search of lasting achievements in their final days. But history shows it is hard going.\n\nWoodrow Wilson spent six months at the Paris Peace Conference in 1919 and returned to sell the League of Nations to the American public—an effort that failed spectacularly when the Senate spurned the treaty. Dwight Eisenhower's superpower summit with the Soviet Union fell apart after a U2 spy plane was shot down. In 1968, after he decided not to seek re-election, Lyndon Johnson tried to secure a settlement of the Vietnam war, to no avail. In his last year in office Mr Clinton came close to visiting Pyongyang and tried, but failed, to forge a lasting peace deal between Israel and the Palestine Liberation Organisation.\n\nSome have fared better. Richard Nixon and Ronald Reagan signed major arms-control agreements in their final years (as did Johnson). Mr Obama normalised ties with Cuba and painstakingly negotiated the Iran nuclear deal (scuttled by Mr Trump). And Mr Trump himself, in the last part of his first term, went on a foreign-policy blitz, meeting Mr Kim three times, signing a peace deal with the Taliban and brokering the Abraham accords which normalised relations between Israel and several Gulf Arab and north African states.\n\nA lame-duck Mr Trump does not seem well-positioned to strike lasting, historic deals. But he will try. He wants to meet Mr Kim yet again to pick up where he left off in his first term. He is keen on a three-way meeting with Mr Putin and Mr Xi at the summit in Shenzhen. That is ostensibly also to discuss nuclear arms control (a topic China has no interest in broaching while its arsenal is below parity with America and Russia). Eventually he may again try to broker a peace in Ukraine.\n\nThe prospects for substantive diplomacy seem bleak. The risk is that Mr Trump agrees to shoddy deals that serve as sticking plasters, allowing him to claim he is worthy of a peace prize. (Mr Vance too may encourage such pacts to promote his own peacemaking bona fides to future voters.) That could store up serious problems for Mr Trump's successor, just as happened in 2020: Mr Trump's pact with the Taliban contributed to the collapse of the Afghan government and Joe Biden's chaotic withdrawal the following year.\n\nMr Trump's lame-duck status will also make it harder for him to strike lasting deals in the first place. Friends and foes will adjust how they interact with the president, notes Sam Charap of the RAND Corporation, a think-tank, mindful that his political authority will ebb away. The extent of Democratic gains on November 3rd suggests that the party is in a strong position to win the presidency in 2028. Many late-term deals, such as Mr Obama's nuclear agreement with Iran and opening to Cuba, rest on weak legislative footing and are easily undone by successors. Ukraine, in particular, might try to wait out Mr Trump in the hope of a successor, in 2029, who would look more favourably on the country. Indeed, it will now be hard for Republicans to recapture the Senate—which must approve international treaties—until 2032, beyond Mr Trump's tenure.\n\nIt is possible that Mr Trump's fundamental unseriousness will work in the world's favour. It takes work to achieve diplomatic breakthroughs. Mr Trump's lack of follow-through might end up leaving a status quo world to the next president. Perhaps he will be drawn more to his domestic preoccupations: carving his name into Washington's granite, securing his family's post-presidency business interests and doling out pardons. But it is also possible that his impetuous nature will put the world at risk in a crisis, a black swan that tests a president's wisdom and patience. Consider an AI-enabled cyber crisis or a Chinese blockade of Taiwan, or something worse. For two years, the world will be holding its breath.■","words":2826}]}],"featured":{"id":"eco-1","title":"Donald Trump's humiliation offers America an opportunity","intro":"America just handed Donald Trump its biggest political defeat in half a century — and a second chance to both parties.","cartoon":"vendor/cartoon-trump.jpg"},"vocab":{"title":"Leaders · 语言要点","text":"# Leaders · 语言要点\n\n> 按表达类型分类 · 每个表达配英语解释 + 原文例句 · 来自本期五篇社论\n\n## 一、习语 & 惯用语 (Idioms)\n\n**take for granted** — to assume something will always be there and never stop to appreciate it\n> Voters cannot be taken for granted.\n\n**end up in very deep water** — to find yourself in serious trouble\n> Politicians who ignore them risk ending up in very deep water.\n\n**wrought havoc** — caused great damage or destruction\n> Gangs brandishing military-grade weapons have wrought havoc.\n\n**no-man's land** — a situation where you belong to neither side; an uncertain position\n> Some are stuck in a no-man's land: unable to access American tech, but also scared of using Chinese alternatives.\n\n**friendly fire** — harm caused by your own side rather than the enemy\n> When AI is used benignly it creates a friendly-fire problem.\n\n**take matters into one's own hands** — to deal with a problem yourself instead of waiting for others\n> No wonder patients are taking matters into their own hands.\n\n**out of pocket** — paid with your own money, not covered by insurance\n> Nearly all consumer health care is paid for out of pocket.\n\n**pearl-clutchers** — people who are easily shocked or offended (moralisers)\n> Britain has become too willing to ban anything pearl-clutchers dislike.\n\n**fall behind the curve** — to be slower than others at adopting new developments\n> Organisations that are not yet using AI constantly to find and close security holes have fallen behind the curve.\n\n## 二、短语动词 (Phrasal Verbs)\n\n**rile up** — to make someone angry or agitated\n> Both parties need a way of doing politics that spends less time riling up their constituents.\n\n**spell out** — to explain clearly and in detail\n> He should spell out his intentions.\n\n**toss aside** — to discard or abandon something carelessly\n> By tossing aside the rulebook, he made his country safer.\n\n**wring (sth) from** — to obtain something from someone with difficulty or effort\n> He and his cronies may try to wring what more they can from their time in power.\n\n**phase out** — to gradually stop using or producing something\n> (同类表达，本期语境相近)\n\n## 三、固定搭配 (Collocations)\n\n**wave-election** — an election in which one party wins by a huge margin\n> This was the biggest wave-election since the aftermath of Watergate.\n\n**burnish one's reputation** — to improve or polish one's image\n> He wants to burnish his reputation, by showing that his record of suppressing gangs can be extended abroad.\n\n**riddled with** — full of (something bad)\n> The result is markets riddled with inefficiency.\n\n**a tangle of** — a complicated mess of\n> Their true cost is obscured by a tangle of middlemen and insurers.\n\n**the erosion of** — the gradual weakening of\n> Most profound of all is the erosion of the original source of market power.\n\n**a verdict on** — a judgment about\n> The vote was thus a verdict on the president.\n\n**turbocharge (sth)** — to make something much more powerful or faster\n> Artificial intelligence has turbocharged cyber malfeasance.\n\n**a sobering (fact/reminder)** — a fact that makes you feel serious and concerned\n> These events have been sobering for the many commentators.\n\n## 四、常用句式 (Sentence Patterns)\n\n**Already it is clear this was not X, but Y** — used to state a surprising contrast\n> Already it is clear this was not a normal midterm swing, but the biggest wave-election in 50 years.\n\n**It turns out that…** — used to introduce a discovery that differs from what was expected\n> It turns out that voters do not much like a president who is elected on a promise to lower prices, but then launches a tariff crusade.\n\n**Things are so bad that it is tempting to…** — used to say a situation is so dire that almost any solution seems welcome\n> Things are so bad that it is tempting to welcome almost any determined outsider.\n\n**No wonder…** — it is not surprising that…\n> No wonder patients are taking matters into their own hands.\n\n**It is easier to start a fight than to end one** — starting trouble is easy, ending it is hard\n> He should remember that it is easier to start a fight than to end one.\n\n**X should be rare, narrow and clearly defined** — restrictions should be limited in scope and precisely specified\n> Restrictions on free speech should be rare, narrow and clearly defined.\n\n**Bans make moralists feel good, but will not work as planned** — prohibitions satisfy moralisers, but fail in practice\n> Bans make moralists feel good, but will not work as planned."},"light":{"id":"cn-1","title":"Hit podcasts reveal the angst of China's youth","blurb":"China's young people turn to long-form podcasts to voice anxieties they cannot express elsewhere.","cartoon":"vendor/cartoon-podcasts.jpg"}}
+</script>
+
+<input type="file" id="fileInput" multiple accept=".pdf,.epub,.txt,.md,.markdown,text/plain,application/pdf,application/epub+zip">
+
+<div id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  var KEY_ARTICLES = "flip.articles.v1";
+  var KEY_SETTINGS = "flip.settings.v1";
+  var KEY_VOCAB = "flip.vocab.v1";
+  var PDFJS_VERSION = "3.11.174";
+  var WPM = 220; // 英文阅读速度（词/分钟）
+
+  var state = {
+    articles: load(KEY_ARTICLES, []),
+    settings: load(KEY_SETTINGS, { fontSize:17, serif:false, dark:false }),
+    vocab: load(KEY_VOCAB, []),
+    filter: "all",
+    query: "",
+    currentId: null,
+    scrollT: null,
+    selT: null,
+    lastSelText: "",
+    savedRange: null
+  };
+
+  /* ================= storage ================= */
+  var storageOk = (function(){
+    try { var k = "__flip_test__"; localStorage.setItem(k, "1"); localStorage.removeItem(k); return true; }
+    catch(e){ return false; }
+  })();
+  var storageWarned = false;
+  function load(key, def){
+    try{ var v = localStorage.getItem(key); return v ? JSON.parse(v) : def; }
+    catch(e){ return def; }
+  }
+  function save(){
+    try{ localStorage.setItem(KEY_ARTICLES, JSON.stringify(state.articles)); }
+    catch(e){
+      if(!storageWarned){ storageWarned = true; toast("无法保存到本地（可能是无痕模式），文章只在本次打开时有效"); }
+    }
+  }
+  function saveSettings(){
+    try{ localStorage.setItem(KEY_SETTINGS, JSON.stringify(state.settings)); }
+    catch(e){}
+  }
+  function saveVocab(){
+    try{ localStorage.setItem(KEY_VOCAB, JSON.stringify(state.vocab)); }
+    catch(e){}
+  }
+  function injectBuiltin(){
+    var FLAG = "flip.builtin.v1", VER = "v5-wordcount";
+    // 版本号用原始字符串读，不能走 load()（load 会 JSON.parse，而这里存的是裸字符串）
+    var cur = null;
+    try { cur = localStorage.getItem(FLAG); } catch(e){}
+    // featured / light / expressions 每次都要重建，不能依赖 localStorage
+    var el = document.getElementById("builtinData");
+    var data = {};
+    if(el){ try { data = JSON.parse(el.textContent || "{}"); } catch(e){ data = {}; } }
+    state.featured = data.featured || null;
+    state.light = data.light || null;
+    state.expressions = parseExpressions(data.vocab ? data.vocab.text : "");
+    if(cur === VER) return;
+    // 清理旧的内置文章（含旧版 eco/cn/as/br 和中文精读）
+    state.articles = state.articles.filter(function(a){
+      return !/^(builtin-leaders|builtin-vocab|eco-|cn-|as-|br-)/.test(a.id);
+    });
+    // 注入语言要点（先 unshift，最终排最后）
+    if(data.vocab && !state.articles.some(function(x){ return x.id === "builtin-vocab"; })){
+      state.articles.unshift({
+        id: "builtin-vocab", title: data.vocab.title, source: "语言要点",
+        text: data.vocab.text, createdAt: Date.now(), lastReadAt: null,
+        progress: 0, finished: false, words: wordCount(data.vocab.text), group: "vocab"
+      });
+    }
+    // 注入各板块文章（逆序 unshift，让 Leaders 排最前、每板块话题强的排前）
+    var sections = data.sections || [];
+    for(var si = sections.length - 1; si >= 0; si--){
+      var sec = sections[si];
+      var arts = sec.articles || [];
+      for(var ai = arts.length - 1; ai >= 0; ai--){
+        var a = arts[ai];
+        if(!state.articles.some(function(x){ return x.id === a.id; })){
+          var body = cleanArticleText(a.full);
+          state.articles.unshift({
+            id: a.id, title: a.title, source: "经济学人 · " + sec.label,
+            text: body, createdAt: Date.now(), lastReadAt: null,
+            progress: 0, finished: false, words: wordCount(body),
+            group: "economist", section: sec.label, order: ai
+          });
+        }
+      }
+    }
+    save();
+    try{ localStorage.setItem(FLAG, VER); }catch(e){}
+  }
+
+  /* ================= dom ================= */
+  var $ = function(id){ return document.getElementById(id); };
+
+  /* ================= helpers ================= */
+  function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+  function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+  function fmtNum(n){ return n.toLocaleString("en-US"); }
+  function fmtDate(ts){
+    var d = new Date(ts);
+    var p = function(x){ return (x<10?"0":"")+x; };
+    return d.getFullYear()+"."+p(d.getMonth()+1)+"."+p(d.getDate());
+  }
+  function wordCount(t){
+    return (t.trim().split(/\s+/).filter(function(w){ return /[A-Za-z0-9]/.test(w); })).length;
+  }
+  function cleanArticleText(t){
+    // 去掉经济学人正文末尾的订阅 / 简报推广行（不属于正文，会虚增词数）
+    var s = String(t || "");
+    s = s.replace(/(?:Subscribers can sign up to[^\n]*|For exclusive coverage of[^\n]*)\s*$/i, "");
+    return s.replace(/[\n ]+$/, "").trim();
+  }
+
+  var toastT;
+  function toast(msg, dur){
+    var el = $("toast"); el.textContent = msg; el.classList.add("show");
+    clearTimeout(toastT); toastT = setTimeout(function(){ el.classList.remove("show"); }, dur || 2200);
+  }
+
+  function statusOf(a){
+    if(a.finished) return "done";
+    if(a.progress && a.progress > 0) return "reading";
+    return "unread";
+  }
+
+  /* ================= import ================= */
+  function addArticle(title, text, source){
+    var a = {
+      id: uid(), title: title || "未命名文章", source: source || "",
+      text: text, createdAt: Date.now(), lastReadAt: null,
+      progress: 0, finished: false, words: wordCount(text)
+    };
+    state.articles.unshift(a);
+    save();
+    return a;
+  }
+
+  function titleFromFilename(name){
+    return name.replace(/\.[^.]+$/,"").replace(/[_-]+/g," ").trim();
+  }
+  function titleFromText(text){
+    var first = text.replace(/^\s+/,"").split(/\r?\n/)[0];
+    if(first){
+      first = first.replace(/^#{1,6}\s+/, "").replace(/\s+#+\s*$/,"").trim();
+      if(first.length > 0 && first.length <= 120) return first;
+    }
+    return null;
+  }
+  function cleanText(text){
+    // 规范化：CRLF、多余空白、页脚页码噪声
+    return text.replace(/\r\n?/g,"\n").replace(/\u00a0/g," ").replace(/[ \t]+/g," ").replace(/\n{3,}/g,"\n\n").trim();
+  }
+
+  function normalizePdfText(text){
+    var lines = text.split(/\n/).map(function(l){return l.trim();}).filter(function(l){return l.length;});
+    var paras = [], cur = "";
+    for(var i=0;i<lines.length;i++){
+      var line = lines[i];
+      if(cur === ""){ cur = line; continue; }
+      if(/[.!?]["”’]?$/.test(cur) || line.length < 60 && /[A-Z]/.test(line[0])){
+        paras.push(cur); cur = line;
+      } else {
+        cur += " " + line;
+      }
+    }
+    if(cur) paras.push(cur);
+    return paras.join("\n\n");
+  }
+
+  function importFiles(files){
+    var list = Array.prototype.slice.call(files);
+    if(!list.length) return;
+    var pending = list.length;
+    var added = 0;
+    var errors = [];
+
+    function finish(){
+      if(pending > 0) return;
+      render();
+      if(added > 0){
+        toast("导入完成，新增 " + added + " 篇");
+      } else if(errors.length){
+        toast("导入失败：" + errors.join(" · "), 9000);
+      }
+    }
+
+    list.forEach(function(file){
+      var ext = (file.name.split(".").pop()||"").toLowerCase();
+      var isMd = ext === "md" || ext === "markdown";
+      var isTxt = ext === "txt" || ext === "text" || file.type === "text/plain";
+      var isPdf = ext === "pdf" || file.type === "application/pdf";
+      var isEpub = ext === "epub" || file.type === "application/epub+zip";
+
+      if(isPdf){
+        readPdf(file).then(function(text){
+          var clean = normalizePdfText(text);
+          if(!clean.trim()){
+            errors.push(file.name + " 无文字层（扫描版/图片版）");
+          } else {
+            var title = titleFromText(clean) || titleFromFilename(file.name);
+            addArticle(title, clean, file.name);
+            added++;
+          }
+          pending--; finish();
+        }).catch(function(e){
+          errors.push(file.name + "（" + (e && e.message ? e.message : "解析失败") + "）");
+          pending--; finish();
+        });
+      } else if(isEpub){
+        readEpub(file).then(function(result){
+          addArticle(result.title || titleFromFilename(file.name), result.text, file.name);
+          added++;
+          pending--; finish();
+        }).catch(function(e){
+          errors.push(file.name + "（" + (e && e.message ? e.message : "EPUB 解析失败") + "）");
+          pending--; finish();
+        });
+      } else if(isTxt || isMd){
+        file.text().then(function(text){
+          var t = cleanText(text);
+          if(!t.trim()){
+            errors.push(file.name + " 是空文件");
+          } else {
+            var title = isMd ? (titleFromText(t) || titleFromFilename(file.name)) : titleFromFilename(file.name);
+            addArticle(title, t, file.name);
+            added++;
+          }
+          pending--; finish();
+        }).catch(function(e){
+          errors.push(file.name + "（读取失败）");
+          pending--; finish();
+        });
+      } else {
+        errors.push(file.name + " 格式不支持");
+        pending--; finish();
+      }
+    });
+  }
+
+  /* ---------- PDF.js 动态加载：本地优先，CDN 兜底 ---------- */
+  var pdfjsPromise = null;
+  function loadPdfjs(){
+    if(pdfjsPromise) return pdfjsPromise;
+    pdfjsPromise = doLoadPdfjs().catch(function(e){
+      pdfjsPromise = null; // 失败后可重试
+      throw e;
+    });
+    return pdfjsPromise;
+  }
+  function doLoadPdfjs(){
+    var candidates = [
+      { lib: "vendor/pdf.min.js", worker: "vendor/pdf.worker.min.js" },
+      { lib: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/" + PDFJS_VERSION + "/pdf.min.js",
+        worker: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/" + PDFJS_VERSION + "/pdf.worker.min.js" },
+      { lib: "https://unpkg.com/pdfjs-dist@" + PDFJS_VERSION + "/build/pdf.min.js",
+        worker: "https://unpkg.com/pdfjs-dist@" + PDFJS_VERSION + "/build/pdf.worker.min.js" },
+      { lib: "https://cdn.jsdelivr.net/npm/pdfjs-dist@" + PDFJS_VERSION + "/build/pdf.min.js",
+        worker: "https://cdn.jsdelivr.net/npm/pdfjs-dist@" + PDFJS_VERSION + "/build/pdf.worker.min.js" }
+    ];
+    function tryLoad(i){
+      if(i >= candidates.length) return Promise.reject(new Error("PDF 解析器加载失败"));
+      var c = candidates[i];
+      return loadScript(c.lib, 15000).then(function(){
+        var lib = window["pdfjs-dist/build/pdf"] || window.pdfjsLib;
+        if(!lib) return tryLoad(i + 1);
+        try { lib.GlobalWorkerOptions.workerSrc = c.worker; } catch(e){}
+        return lib;
+      }).catch(function(){ return tryLoad(i + 1); });
+    }
+    return tryLoad(0);
+  }
+  function loadScript(src, timeout){
+    return new Promise(function(resolve, reject){
+      var done = false, s = document.createElement("script");
+      var timer = setTimeout(function(){
+        if(!done){ done = true; s.onload = s.onerror = null; reject(new Error("timeout")); }
+      }, timeout || 15000);
+      s.onload = function(){ if(!done){ done = true; clearTimeout(timer); resolve(); } };
+      s.onerror = function(){ if(!done){ done = true; clearTimeout(timer); reject(new Error("load fail")); } };
+      s.src = src;
+      document.head.appendChild(s);
+    });
+  }
+  function readPdf(file){
+    toast("正在加载 PDF 解析器 …", 6000);
+    return loadPdfjs().then(function(lib){
+      return file.arrayBuffer().then(function(buf){
+        return lib.getDocument({ data: buf }).promise;
+      }).then(function(pdf){
+        toast("正在解析 PDF（共 " + pdf.numPages + " 页）…", 60000);
+        var jobs = [];
+        for(var i=1;i<=pdf.numPages;i++){
+          (function(n){
+            jobs.push(
+              pdf.getPage(n).then(function(pg){
+                return pg.getTextContent().then(function(tc){
+                  return tc.items.map(function(it){ return it.str; }).join(" ");
+                });
+              })
+            );
+          })(i);
+        }
+        return Promise.all(jobs).then(function(arr){ return arr.join("\n\n"); });
+      });
+    });
+  }
+
+  /* ---------- JSZip 动态加载（解压 epub）：本地优先，CDN 兜底 ---------- */
+  var jszipPromise = null;
+  function loadJszip(){
+    if(jszipPromise) return jszipPromise;
+    jszipPromise = (function(){
+      var candidates = [
+        "vendor/jszip.min.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js",
+        "https://unpkg.com/jszip@3.10.1/dist/jszip.min.js",
+        "https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"
+      ];
+      function tryLoad(i){
+        if(i >= candidates.length) return Promise.reject(new Error("EPUB 解析器加载失败"));
+        return loadScript(candidates[i], 15000).then(function(){
+          return window.JSZip ? window.JSZip : tryLoad(i + 1);
+        }).catch(function(){ return tryLoad(i + 1); });
+      }
+      return tryLoad(0);
+    })().catch(function(e){ jszipPromise = null; throw e; });
+    return jszipPromise;
+  }
+
+  function resolvePath(base, href){
+    var h = href || "";
+    h = h.split("#")[0];
+    try { h = decodeURIComponent(h); } catch(e){}
+    var parts = ((base || "") + h).split("/");
+    var out = [];
+    for(var i=0;i<parts.length;i++){
+      var p = parts[i];
+      if(p === "" || p === ".") continue;
+      if(p === ".."){ if(out.length) out.pop(); continue; }
+      out.push(p);
+    }
+    return out.join("/");
+  }
+
+  function stripHtml(html){
+    var s = String(html || "");
+    s = s.replace(/<script[\s\S]*?<\/script>/gi, " ");
+    s = s.replace(/<style[\s\S]*?<\/style>/gi, " ");
+    s = s.replace(/<(\/?(?:p|div|h[1-6]|li|blockquote|section|article|tr|table|figure|figcaption)[^>]*)>/gi, "\n");
+    s = s.replace(/<br\s*\/?>/gi, "\n");
+    s = s.replace(/<hr\s*\/?>/gi, "\n\n");
+    s = s.replace(/<[^>]+>/g, "");
+    s = s.replace(/&nbsp;/gi, " ");
+    s = s.replace(/&amp;/gi, "&");
+    s = s.replace(/&lt;/gi, "<");
+    s = s.replace(/&gt;/gi, ">");
+    s = s.replace(/&quot;/gi, '"');
+    s = s.replace(/&apos;|&#39;/gi, "'");
+    s = s.replace(/&#(\d+);/g, function(_, n){ return String.fromCharCode(parseInt(n, 10)); });
+    s = s.replace(/&#x([0-9a-fA-F]+);/g, function(_, n){ return String.fromCharCode(parseInt(n, 16)); });
+    s = s.replace(/[ \t]+/g, " ");
+    s = s.replace(/\n[ \t]*\n[ \t]*\n+/g, "\n\n");
+    s = s.replace(/^[ \n]+|[ \n]+$/g, "");
+    return s;
+  }
+
+  function readEpub(file){
+    toast("正在解析 EPUB …", 60000);
+    return loadJszip().then(function(JSZip){
+      return file.arrayBuffer().then(function(buf){
+        return JSZip.loadAsync(buf);
+      }).then(function(zip){
+        var container = zip.file("META-INF/container.xml");
+        if(!container) throw new Error("不是有效的 EPUB（缺 container.xml）");
+        return container.async("string").then(function(cxml){
+          var m = cxml.match(/full-path="([^"]+)"/);
+          if(!m) throw new Error("EPUB 缺 content.opf");
+          var opfPath = m[1];
+          var baseDir = opfPath.split("/").slice(0, -1).join("/");
+          if(baseDir) baseDir += "/";
+          var opfFile = zip.file(opfPath);
+          if(!opfFile) throw new Error("找不到 " + opfPath);
+          return opfFile.async("string").then(function(opf){
+            return parseEpub(opf, baseDir, zip);
+          });
+        });
+      });
+    });
+  }
+
+  function parseEpub(opf, baseDir, zip){
+    var title = "未命名";
+    var tm = opf.match(/<dc:title[^>]*>([\s\S]*?)<\/dc:title>/i);
+    if(tm) title = stripHtml(tm[1]) || "未命名";
+
+    var manifest = {};
+    var itemRe = /<item\b[^>]*>/gi, m;
+    while((m = itemRe.exec(opf))){
+      var id = (m[0].match(/\bid="([^"]+)"/) || [])[1];
+      var href = (m[0].match(/\bhref="([^"]+)"/) || [])[1];
+      if(id && href) manifest[id] = href;
+    }
+
+    var spine = [];
+    var refRe = /<itemref\b[^>]*idref="([^"]+)"/gi, r;
+    while((r = refRe.exec(opf))) spine.push(r[1]);
+
+    var jobs = spine.map(function(id){
+      var href = manifest[id];
+      if(!href) return Promise.resolve("");
+      var full = resolvePath(baseDir, href);
+      var f = zip.file(full);
+      if(!f) return Promise.resolve("");
+      return f.async("string").then(stripHtml).catch(function(){ return ""; });
+    });
+
+    return Promise.all(jobs).then(function(parts){
+      var text = parts.filter(function(p){ return p && p.trim(); }).join("\n\n");
+      if(!text.trim()) throw new Error("EPUB 里没提取到正文");
+      return { title: title, text: text };
+    });
+  }
+
+  /* ================= markdown-lite → HTML ================= */
+  function inline(s){
+    s = esc(s);
+    s = s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+    s = s.replace(/`([^`]+)`/g, "<code>$1</code>");
+    s = s.replace(/(^|[^*])\*([^*\s][^*]*)\*/g, "$1<em>$2</em>");
+    return s;
+  }
+  function renderText(text){
+    var lines = text.replace(/\r\n?/g,"\n").split("\n");
+    var html = "", open = null;
+    function closeList(){ if(open){ html += (open==="ul"?"</ul>":"</ol>"); open = null; } }
+    function cells(line){ return line.trim().replace(/^\|/,"").replace(/\|$/,"").split("|").map(function(c){ return c.trim(); }); }
+    function isSep(line){ var s = line.trim(); return /^\|?[\s:|-]+\|?$/.test(s) && s.indexOf("-") !== -1; }
+    for(var i=0;i<lines.length;i++){
+      var line = lines[i].replace(/\s+$/,"");
+      if(!line.trim()){ closeList(); continue; }
+
+      // Markdown 表格
+      if(/^\s*\|/.test(line) && isSep(lines[i+1] || "")){
+        var rows = [], j = i;
+        while(j < lines.length && /^\s*\|/.test(lines[j])){ rows.push(cells(lines[j])); j++; }
+        if(rows.length >= 2){
+          closeList();
+          html += "<table><thead><tr>" + rows[0].map(function(c){ return "<th>"+inline(c)+"</th>"; }).join("") + "</tr></thead><tbody>";
+          for(var k=2;k<rows.length;k++){
+            html += "<tr>" + rows[k].map(function(c){ return "<td>"+inline(c)+"</td>"; }).join("") + "</tr>";
+          }
+          html += "</tbody></table>";
+          i = j - 1;
+          continue;
+        }
+      }
+
+      var h = line.match(/^(#{1,4})\s+(.*)$/);
+      if(h){ closeList(); html += "<h"+(h[1].length+1)+">"+inline(h[2])+"</h"+(h[1].length+1)+">"; continue; }
+      var q = line.match(/^>\s?(.*)$/);
+      if(q){ closeList(); html += "<blockquote>"+inline(q[1])+"</blockquote>"; continue; }
+      var ul = line.match(/^\s*[-*•]\s+(.*)$/);
+      if(ul){ if(open!=="ul"){ closeList(); html+="<ul>"; open="ul"; } html += "<li>"+inline(ul[1])+"</li>"; continue; }
+      var ol = line.match(/^\s*\d+[.)]\s+(.*)$/);
+      if(ol){ if(open!=="ol"){ closeList(); html+="<ol>"; open="ol"; } html += "<li>"+inline(ol[1])+"</li>"; continue; }
+      closeList(); html += "<p>"+inline(line)+"</p>";
+    }
+    closeList();
+    return html;
+  }
+
+  /* ================= library render ================= */
+  function filtered(){
+    var q = state.query.trim().toLowerCase();
+    return state.articles.filter(function(a){
+      if(state.filter !== "all" && statusOf(a) !== state.filter) return false;
+      if(q){
+        var hay = (a.title + " " + a.text + " " + a.source).toLowerCase();
+        if(hay.indexOf(q) === -1) return false;
+      }
+      return true;
+    });
+  }
+  function render(){
+    renderFeatured();
+    renderLight();
+    renderAllArticles();
+    renderHook();
+  }
+
+  function renderFeatured(){
+    var f = state.featured;
+    var card = $("featuredCard");
+    if(!card) return;
+    if(!f){
+      card.style.display = "none";
+      return;
+    }
+    card.style.display = "flex";
+    $("featuredTitle").textContent = f.title || "";
+    $("featuredIntro").textContent = f.intro || "";
+    var img = $("featuredCartoon");
+    if(img){
+      if(f.cartoon){ img.src = f.cartoon; img.style.display = "block"; }
+      else { img.style.display = "none"; }
+    }
+  }
+
+  function renderLight(){
+    var l = state.light;
+    var card = $("lightCard");
+    if(!card) return;
+    if(!l){
+      card.style.display = "none";
+      return;
+    }
+    card.style.display = "block";
+    $("lightTitle").textContent = l.title || "";
+    $("lightBlurb").textContent = l.blurb || "";
+    var img = $("lightCartoon");
+    if(img){
+      if(l.cartoon){ img.src = l.cartoon; img.style.display = "block"; }
+      else { img.style.display = "none"; }
+    }
+  }
+
+  function renderAllArticles(){
+    var el = $("allArticles");
+    if(!el) return;
+    el.innerHTML = "";
+    var items = state.articles.filter(function(a){ return a.group === "economist"; });
+    if(!items.length) return;
+    var sections = ["Leaders", "China", "Asia", "Briefing"];
+    sections.forEach(function(sec){
+      var arts = items.filter(function(a){ return a.section === sec; });
+      if(!arts.length) return;
+      arts.sort(function(a,b){ return (a.order||0) - (b.order||0); });
+      var secTitle = document.createElement("div");
+      secTitle.className = "eco-section-title";
+      secTitle.textContent = sec;
+      el.appendChild(secTitle);
+      arts.forEach(function(a){
+        var item = document.createElement("div");
+        item.className = "aa-item";
+        item.setAttribute("role", "button");
+        item.setAttribute("tabindex", "0");
+        item.innerHTML =
+          '<div class="aa-title">' + esc(a.title) + '</div>' +
+          '<div class="aa-meta">' + fmtNum(a.words) + ' 词 · 约 ' + Math.max(1, Math.round(a.words/WPM)) + ' 分钟</div>';
+        item.addEventListener("click", function(){ openReader(a.id); });
+        el.appendChild(item);
+      });
+    });
+  }
+
+  function cloze(sentence, word){
+    if(!sentence || !word) return sentence;
+    var idx = sentence.toLowerCase().indexOf(word.toLowerCase());
+    if(idx === -1) return sentence;
+    return sentence.slice(0, idx) + "＿＿＿" + sentence.slice(idx + word.length);
+  }
+  function makeHint(word){
+    return word.split(/\s+/).map(function(w){
+      return w.charAt(0) + w.slice(1).replace(/[A-Za-z]/g, "＿");
+    }).join(" ");
+  }
+  function renderHook(){
+    var el = $("hookBody");
+    if(!el) return;
+    var words = state.vocab.slice(0, 3);
+    if(!words.length){
+      el.innerHTML = '<div class="hook-empty">读文章时选中不认识的词，点「划线」收藏，这里会自动生成「原文挖空」——回到原文句子，在空格里填出你收藏的表达。</div>';
+      return;
+    }
+    el.innerHTML = words.map(function(v){
+      var sentence = v.context || "";
+      var word = v.word || "";
+      var idx = sentence ? sentence.toLowerCase().indexOf(word.toLowerCase()) : -1;
+      var body = '';
+      if(idx !== -1){
+        var before = esc(sentence.slice(0, idx));
+        var after = esc(sentence.slice(idx + word.length));
+        body += '<div class="hook-sentence">' + before + '<input class="hook-input" data-answer="' + esc(word) + '" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="填表达">' + after + '</div>';
+      } else {
+        body += '<div class="hook-sentence">' + esc(word) + '</div>';
+      }
+      // 判断反馈
+      body += '<div class="hook-feedback"></div>';
+      // 提示（首字母 + 词义），初始隐藏
+      var hint = makeHint(word);
+      var hintInner = '';
+      if(hint !== word) hintInner += '<div>首字母：' + esc(hint) + '</div>';
+      if(v.def) hintInner += '<div>词义：' + esc(v.def) + '</div>';
+      if(hintInner) body += '<div class="hook-hint">' + hintInner + '</div>';
+      // 答案，初始隐藏
+      body += '<div class="hook-answer">' + esc(word) + '</div>';
+      // 操作按钮
+      body += '<div class="hook-actions"><button class="hook-btn" data-act="check">确认</button><button class="hook-btn" data-act="hint">提示</button><button class="hook-btn" data-act="answer">看答案</button></div>';
+      return '<div class="hook-item">' + body + '</div>';
+    }).join('');
+    el.querySelectorAll(".hook-item").forEach(function(item){
+      var input = item.querySelector(".hook-input");
+      var checkBtn = item.querySelector('[data-act="check"]');
+      var hintBtn = item.querySelector('[data-act="hint"]');
+      var ansBtn = item.querySelector('[data-act="answer"]');
+      function doCheck(){
+        if(!input) return;
+        var ans = (input.value || "").trim().toLowerCase();
+        var correct = (input.getAttribute("data-answer") || "").toLowerCase();
+        var fb = item.querySelector(".hook-feedback");
+        if(!fb) return;
+        if(ans === correct){
+          fb.textContent = "✓ 正确！";
+          fb.className = "hook-feedback ok";
+          input.disabled = true;
+          item.classList.add("solved");
+          if(checkBtn){ checkBtn.textContent = "✓"; checkBtn.disabled = true; }
+        } else {
+          fb.textContent = "✗ 不对，再想想";
+          fb.className = "hook-feedback bad";
+        }
+      }
+      if(checkBtn) checkBtn.addEventListener("click", doCheck);
+      if(input) input.addEventListener("keydown", function(e){ if(e.key === "Enter"){ e.preventDefault(); doCheck(); } });
+      if(hintBtn) hintBtn.addEventListener("click", function(){
+        var on = item.classList.toggle("hinted");
+        hintBtn.textContent = on ? "收起提示" : "提示";
+      });
+      if(ansBtn) ansBtn.addEventListener("click", function(){
+        var on = item.classList.toggle("revealed");
+        ansBtn.textContent = on ? "收起答案" : "看答案";
+      });
+    });
+  }
+
+  function removeArticle(id){
+    if(!confirm("删除这篇文章？")) return;
+    state.articles = state.articles.filter(function(a){return a.id!==id;});
+    save(); render(); toast("已删除");
+  }
+
+  /* ================= reader ================= */
+  function openReader(id){
+    var a = state.articles.find(function(x){return x.id===id;});
+    if(!a) return;
+    state.currentId = id;
+    a.lastReadAt = Date.now();
+    save();
+
+    $("readerTitle").textContent = a.title;
+    $("readerMeta").innerHTML = [
+      a.source ? "<span>"+esc(a.source)+"</span>" : "",
+      "<span>"+fmtDate(a.createdAt)+"</span>",
+      "<span>"+fmtNum(a.words)+" 词</span>",
+      "<span>约 "+Math.max(1,Math.round(a.words/WPM))+" 分钟</span>"
+    ].join("");
+    $("readerBody").innerHTML = a.bodyHtml || renderText(a.text);
+
+    $("library").style.display = "none";
+    $("vocabView").classList.remove("open");
+    $("ecoView").classList.remove("open");
+    $("reader").classList.add("open");
+    hideSelToolbar();
+    closeDict();
+    window.scrollTo(0,0);
+
+    // 恢复阅读进度
+    requestAnimationFrame(function(){
+      requestAnimationFrame(function(){
+        var max = document.documentElement.scrollHeight - window.innerHeight;
+        window.scrollTo(0, (a.progress||0) * max);
+        updateProgress(true);
+      });
+    });
+    applySettings();
+  }
+
+  function closeReader(){
+    var a = state.articles.find(function(x){return x.id===state.currentId;});
+    if(a) persistProgress(a);
+    $("reader").classList.remove("open");
+    $("vocabView").classList.remove("open");
+    $("ecoView").classList.remove("open");
+    $("library").style.display = "block";
+    state.currentId = null;
+    hideSelToolbar();
+    closeDict();
+    render();
+    window.scrollTo(0,0);
+  }
+
+  function updateProgress(force){
+    var a = state.articles.find(function(x){return x.id===state.currentId;});
+    if(!a) return;
+    var max = document.documentElement.scrollHeight - window.innerHeight;
+    var p = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
+    $("progressFill").style.width = (p*100)+"%";
+    if(force || true){
+      clearTimeout(state.scrollT);
+      state.scrollT = setTimeout(function(){ persistProgress(a); }, 400);
+    }
+  }
+  function persistProgress(a){
+    var max = document.documentElement.scrollHeight - window.innerHeight;
+    var p = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
+    a.progress = p;
+    if(p >= 0.95) a.finished = true;
+    save();
+    var doneEl = $("readerDone");
+    if(doneEl) doneEl.textContent = a.finished ? "已读完 · " + fmtNum(a.words) + " 词" : "";
+  }
+
+  function nextRandom(){
+    var pool = state.articles.filter(function(x){ return x.id !== state.currentId; });
+    var unread = pool.filter(function(x){ return statusOf(x)==="unread"; });
+    var pick = (unread.length ? unread : pool);
+    if(!pick.length){ toast("只有这一篇了"); return; }
+    var a = pick[Math.floor(Math.random()*pick.length)];
+    openReader(a.id);
+  }
+
+  /* ================= 划线 / 查字典 / 生词本 ================= */
+  var dictCurrent = null;
+
+  function hideSelToolbar(){ $("selToolbar").classList.remove("show"); }
+  function showSelToolbar(rect){
+    var tb = $("selToolbar");
+    tb.classList.add("show");
+    var x, y;
+    if(rect && (rect.width || rect.height)){
+      x = rect.left + rect.width/2 - tb.offsetWidth/2;
+      y = rect.top - tb.offsetHeight - 8;
+      if(y < 8) y = rect.bottom + 8;
+    } else {
+      // 选区定位失败时，默认显示在屏幕中上部
+      x = (window.innerWidth - tb.offsetWidth) / 2;
+      y = Math.max(8, window.innerHeight / 3);
+    }
+    x = Math.max(8, Math.min(x, window.innerWidth - tb.offsetWidth - 8));
+    y = Math.max(8, y);
+    tb.style.left = x + "px";
+    tb.style.top = y + "px";
+  }
+  function showExprTip(word, meaning, rect){
+    var tip = $("exprTip");
+    if(!tip) return;
+    $("exprTipWord").textContent = word;
+    $("exprTipMeaning").textContent = meaning;
+    tip.classList.add("show");
+    var x, y;
+    if(rect && (rect.width || rect.height)){
+      x = rect.left + rect.width/2 - tip.offsetWidth/2;
+      y = rect.top - tip.offsetHeight - 8;
+      if(y < 8) y = rect.bottom + 8;
+    } else {
+      x = (window.innerWidth - tip.offsetWidth) / 2;
+      y = Math.max(8, window.innerHeight / 3);
+    }
+    x = Math.max(8, Math.min(x, window.innerWidth - tip.offsetWidth - 8));
+    y = Math.max(8, y);
+    tip.style.left = x + "px";
+    tip.style.top = y + "px";
+    clearTimeout(state.exprTipT);
+    state.exprTipT = setTimeout(function(){ tip.classList.remove("show"); }, 8000);
+  }
+  function currentArticle(){
+    return state.articles.find(function(x){ return x.id === state.currentId; });
+  }
+  function extractContext(range){
+    try {
+      var node = range.startContainer;
+      var p = node && node.nodeType === 1 ? node : (node ? node.parentNode : null);
+      while(p && p !== $("readerBody") && !/^(P|DIV|LI|BLOCKQUOTE|H[1-6])$/.test(p.tagName || "")){
+        p = p.parentNode;
+      }
+      if(p && p !== $("readerBody")){
+        var full = (p.textContent || "").replace(/\s+/g, " ").trim();
+        var sel = (state.lastSelText || "").trim();
+        // 提取词所在的「那一句」作为原文例句
+        var idx = sel ? full.toLowerCase().indexOf(sel.toLowerCase()) : -1;
+        if(idx !== -1){
+          var start = idx;
+          while(start > 0 && !/[.!?]/.test(full[start - 1])){ start--; }
+          var end = idx + sel.length;
+          while(end < full.length && !/[.!?]/.test(full[end])){ end++; }
+          if(end < full.length) end++;
+          var sent = full.slice(start, end).trim();
+          if(sent) return sent;
+        }
+        // 兜底：返回整段（截断）
+        if(full.length > 200) full = full.slice(0, 200) + "…";
+        return full;
+      }
+    } catch(e){}
+    return "";
+  }
+  function findContextByWord(word){
+    try {
+      var a = currentArticle();
+      if(!a || !word) return "";
+      var text = a.text || "";
+      var idx = text.toLowerCase().indexOf(String(word).toLowerCase());
+      if(idx === -1) return "";
+      var start = idx;
+      while(start > 0 && !/[.!?]/.test(text[start - 1])){ start--; }
+      var end = idx + String(word).length;
+      while(end < text.length && !/[.!?]/.test(text[end])){ end++; }
+      if(end < text.length) end++;
+      var sent = text.slice(start, end).trim();
+      return sent || "";
+    } catch(e){ return ""; }
+  }
+  function highlightSelection(){
+    var range = state.savedRange;
+    var text = state.lastSelText;
+    if(!range || !text) return null;
+    state.lastContext = extractContext(range);
+    var mark = document.createElement("mark");
+    mark.className = "hl";
+    mark.setAttribute("data-hl", "1");
+    try {
+      range.surroundContents(mark);
+    } catch(e){
+      try {
+        range.deleteContents();
+        mark.textContent = text;
+        range.insertNode(mark);
+      } catch(e2){ return null; }
+    }
+    var a = currentArticle();
+    if(a){ a.bodyHtml = $("readerBody").innerHTML; save(); }
+    return text;
+  }
+  function parseExpressions(md){
+    var map = {};
+    if(!md) return map;
+    md.split("\n").forEach(function(line){
+      var m = line.match(/^\*\*(.+?)\*\*\s*[—\-–]\s*(.+)$/);
+      if(m){
+        var key = m[1].trim().toLowerCase().replace(/\((?:sth|sb|one's[^)]*)\)/g, "").trim();
+        map[key] = m[2].trim();
+      }
+    });
+    return map;
+  }
+  function findExpression(word){
+    if(!word) return null;
+    var w = String(word).trim().toLowerCase();
+    if(!w) return null;
+    if(state.expressions[w]) return { word: w, meaning: state.expressions[w] };
+    var stem = w.replace(/(ing|ed|es|s)$/, "");
+    for(var key in state.expressions){
+      if(!Object.prototype.hasOwnProperty.call(state.expressions, key)) continue;
+      if(key === stem || key.indexOf(w) !== -1 || w.indexOf(key) !== -1){
+        return { word: key, meaning: state.expressions[key] };
+      }
+    }
+    return null;
+  }
+  function addToVocab(word, def, phonetic, articleTitle, context){
+    word = String(word || "").trim();
+    if(!word) return;
+    var exists = state.vocab.find(function(v){ return v.word.toLowerCase() === word.toLowerCase(); });
+    if(exists){
+      if(def && !exists.def){ exists.def = def; saveVocab(); }
+      if(phonetic && !exists.phonetic){ exists.phonetic = phonetic; saveVocab(); }
+      if(context && !exists.context){ exists.context = context; saveVocab(); }
+      toast("「" + word + "」已在生词本");
+      return;
+    }
+    state.vocab.unshift({ word: word, def: def || "", phonetic: phonetic || "", articleTitle: articleTitle || "", context: context || "", createdAt: Date.now() });
+    saveVocab();
+    toast("已加入生词本：" + word);
+  }
+  function onHighlight(){
+    var rect = null;
+    if(state.savedRange){ try { rect = state.savedRange.getBoundingClientRect(); } catch(e){} }
+    var text = highlightSelection();
+    hideSelToolbar();
+    var ctx = state.lastContext || "";
+    state.lastSelText = ""; state.savedRange = null; state.lastContext = "";
+    if(!text) return;
+    if(!ctx) ctx = findContextByWord(text);
+    var a = currentArticle();
+    addToVocab(text, "", "", a ? a.title : "", ctx);
+    var hit = findExpression(text);
+    if(hit){
+      showExprTip(hit.word, hit.meaning, rect);
+    }
+  }
+  function onDict(){
+    var text = state.lastSelText || (window.getSelection() ? window.getSelection().toString() : "");
+    text = (text || "").trim();
+    var ctx = state.lastContext || "";
+    hideSelToolbar();
+    state.lastSelText = ""; state.savedRange = null; state.lastContext = "";
+    if(!text) return;
+    var word = text.split(/\s+/)[0].replace(/^[^A-Za-z'-]+|[^A-Za-z'-]+$/g, "");
+    if(!word){ toast("没识别出单词"); return; }
+    if(!ctx) ctx = findContextByWord(word);
+    lookupWord(word, ctx);
+  }
+  function closeDict(){ $("dictPanel").classList.remove("show"); dictCurrent = null; }
+  function lookupWord(word, ctx){
+    dictCurrent = null;
+    $("dictWord").textContent = word;
+    $("dictPh").textContent = "";
+    $("dictBody").innerHTML = '<div class="dict-loading">查询中 …</div>';
+    $("dictPanel").classList.add("show");
+    var fail = function(){
+      $("dictBody").innerHTML = '<div class="dict-err">查不到「' + esc(word) + '」的释义（网络不通，或词典里没有这个词）</div>';
+    };
+    var ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
+    var timer = setTimeout(function(){ if(ctrl){ try{ ctrl.abort(); }catch(e){} } fail(); }, 12000);
+    try {
+      fetch("https://api.dictionaryapi.dev/api/v2/entries/en/" + encodeURIComponent(word), ctrl ? { signal: ctrl.signal } : {})
+        .then(function(r){ if(!r.ok) throw new Error("http " + r.status); return r.json(); })
+        .then(function(data){ clearTimeout(timer); renderDict(word, data, ctx); })
+        .catch(function(){ clearTimeout(timer); fail(); });
+    } catch(e){ clearTimeout(timer); fail(); }
+  }
+  function renderDict(word, data, ctx){
+    var context = ctx || "";
+    if(!context){
+      var vitem = state.vocab.find(function(v){ return v.word.toLowerCase() === word.toLowerCase(); });
+      if(vitem) context = vitem.context || "";
+    }
+
+    var html = "";
+    // 版块 1：Read between the lines（此处含义）
+    if(context){
+      html += '<div class="dict-section">Read between the lines</div>';
+      html += '<div class="dict-context">' + esc(context) + '</div>';
+    }
+
+    // 版块 2：Steal like an artist（释义 + 例句）
+    html += '<div class="dict-section">Steal like an artist</div>';
+
+    var firstDef = "", examples = [];
+    if(Array.isArray(data) && data.length){
+      var entry = data[0];
+      $("dictWord").textContent = entry.word || word;
+      $("dictPh").textContent = entry.phonetic ? "/" + entry.phonetic + "/" : "";
+      (entry.meanings || []).forEach(function(m){
+        html += '<div class="dict-pos">' + esc(m.partOfSpeech || "") + '</div>';
+        (m.definitions || []).slice(0, 3).forEach(function(d){
+          html += '<div class="dict-def">' + esc(d.definition) + '</div>';
+          if(!firstDef && d.definition) firstDef = d.definition;
+          if(d.example) examples.push(d.example);
+        });
+      });
+      if(examples.length){
+        html += '<div class="dict-pos">例句</div>';
+        examples.slice(0, 2).forEach(function(ex, i){
+          html += '<div class="dict-example"><span class="dict-ex-num">' + (i+1) + '</span><span>' + esc(ex) + '</span></div>';
+        });
+      }
+      if(!firstDef) html += '<div class="dict-err">没有释义</div>';
+      dictCurrent = { word: entry.word || word, phonetic: entry.phonetic || "", def: firstDef, context: context };
+    } else {
+      $("dictWord").textContent = word;
+      $("dictPh").textContent = "";
+      html += '<div class="dict-err">词典里没找到「' + esc(word) + '」</div>';
+      dictCurrent = { word: word, phonetic: "", def: "", context: context };
+    }
+
+    html += '<div class="dict-actions"><button class="btn primary" id="dictAddBtn">＋ 加入生词本</button></div>';
+    $("dictBody").innerHTML = html;
+    var addBtn = $("dictAddBtn");
+    if(addBtn) addBtn.addEventListener("click", function(){
+      var a = currentArticle();
+      addToVocab(dictCurrent.word, dictCurrent.def, dictCurrent.phonetic, a ? a.title : "", dictCurrent.context);
+    });
+  }
+  function openVocab(){
+    closeDict();
+    $("library").style.display = "none";
+    $("reader").classList.remove("open");
+    $("vocabView").classList.add("open");
+    renderVocab();
+    window.scrollTo(0,0);
+  }
+  function closeVocab(){
+    closeDict();
+    $("vocabView").classList.remove("open");
+    $("library").style.display = "block";
+    window.scrollTo(0,0);
+  }
+  function renderVocab(){
+    var el = $("vocabList");
+    $("vocabCount").textContent = state.vocab.length + " 词";
+    if(!state.vocab.length){
+      el.innerHTML = '<div class="vocab-empty">还没有生词。阅读时选中不认识的单词，点「划线」就会收进这里；点「查字典」看释义。</div>';
+      return;
+    }
+    el.innerHTML = "";
+    state.vocab.forEach(function(v, idx){
+      var item = document.createElement("div");
+      item.className = "vocab-item";
+      item.setAttribute("role", "button");
+      item.setAttribute("tabindex", "0");
+      var html = '';
+      html += '<div class="vocab-head"><span class="w">' + esc(v.word) + '</span><span class="del" data-i="' + idx + '">✕</span></div>';
+      if(v.def) html += '<div class="vocab-def">' + esc(v.def) + '</div>';
+      if(v.context) html += '<div class="vocab-example">' + esc(v.context) + '</div>';
+      if(v.articleTitle) html += '<div class="vocab-src">' + esc(v.articleTitle) + '</div>';
+      item.innerHTML = html;
+      item.addEventListener("click", function(e){
+        if(e.target && e.target.getAttribute && e.target.getAttribute("data-i") !== null){
+          state.vocab.splice(idx, 1); saveVocab(); renderVocab(); return;
+        }
+        lookupWord(v.word);
+      });
+      el.appendChild(item);
+    });
+  }
+
+  /* ================= 经济学人板块 ================= */
+  function openEco(){
+    closeDict();
+    $("library").style.display = "none";
+    $("reader").classList.remove("open");
+    $("vocabView").classList.remove("open");
+    $("ecoView").classList.add("open");
+    renderEco();
+    window.scrollTo(0,0);
+  }
+  function closeEco(){
+    closeDict();
+    $("ecoView").classList.remove("open");
+    $("library").style.display = "block";
+    window.scrollTo(0,0);
+  }
+  function renderEco(){
+    var el = $("ecoList");
+    el.innerHTML = "";
+    var items = state.articles.filter(function(a){ return a.group === "economist"; });
+    if(!items.length){
+      el.innerHTML = '<div class="vocab-empty">暂无经济学人文章。</div>';
+      return;
+    }
+    var sections = ["Leaders", "China", "Asia", "Briefing"];
+    sections.forEach(function(sec){
+      var arts = items.filter(function(a){ return a.section === sec; });
+      if(!arts.length) return;
+      arts.sort(function(a,b){ return (a.order||0) - (b.order||0); });
+      var secTitle = document.createElement("div");
+      secTitle.className = "eco-section-title";
+      secTitle.textContent = sec;
+      el.appendChild(secTitle);
+      arts.forEach(function(a){
+        var item = document.createElement("div");
+        item.className = "eco-item";
+        item.setAttribute("role", "button");
+        item.setAttribute("tabindex", "0");
+        var preview = (a.text || "").replace(/\s+/g, " ").trim().slice(0, 360);
+        item.innerHTML =
+          '<div class="t">' + esc(a.title) + '</div>' +
+          '<div class="m">' + fmtNum(a.words) + ' 词 · 约 ' + Math.max(1, Math.round(a.words/WPM)) + ' 分钟</div>' +
+          '<div class="p">' + esc(preview) + ' …</div>' +
+          '<div class="cta">读全文 →</div>';
+        item.addEventListener("click", function(){ openReader(a.id); });
+        item.addEventListener("keydown", function(e){ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); openReader(a.id); } });
+        el.appendChild(item);
+      });
+    });
+  }
+
+  // 选中文字 → 浮动工具条
+  document.addEventListener("selectionchange", function(){
+    if(!$("reader").classList.contains("open")){ return; }
+    var sel = window.getSelection();
+    if(!sel || sel.isCollapsed){
+      state.lastSelText = ""; state.savedRange = null; hideSelToolbar(); return;
+    }
+    var text = (sel.toString() || "").trim();
+    if(!text || text.length > 80){
+      state.lastSelText = ""; state.savedRange = null; hideSelToolbar(); return;
+    }
+    var range = sel.getRangeAt(0);
+    if(!$("readerBody").contains(range.commonAncestorContainer)){ return; }
+    state.lastSelText = text;
+    state.savedRange = range.cloneRange();
+    var rect = range.getBoundingClientRect();
+    showSelToolbar(rect);
+  });
+
+  // 事件绑定
+  $("lightCard").addEventListener("click", function(){
+    if(state.light && state.light.id) openReader(state.light.id);
+  });
+  $("exprCard").addEventListener("click", function(){ openReader("builtin-vocab"); });
+  $("moduleVocab").addEventListener("click", openVocab);
+  $("vocabBack").addEventListener("click", closeVocab);
+  $("ecoBack").addEventListener("click", closeEco);
+  $("featuredCard").addEventListener("click", function(){
+    if(state.featured && state.featured.id) openReader(state.featured.id);
+  });
+  $("dictClose").addEventListener("click", closeDict);
+  ["hlBtn","dictBtn"].forEach(function(id){
+    $(id).addEventListener("pointerdown", function(e){
+      e.preventDefault();
+      // 兜底：部分环境（尤其 iOS）点按钮会先清空选区，这里在清空前先存一份
+      var sel = window.getSelection();
+      if(sel && !sel.isCollapsed){
+        var t = (sel.toString() || "").trim();
+        if(t && t.length <= 80){
+          state.lastSelText = t;
+          try { state.savedRange = sel.getRangeAt(0).cloneRange(); } catch(e2){}
+        }
+      }
+    });
+    $(id).addEventListener("mousedown", function(e){ e.preventDefault(); });
+  });
+  $("hlBtn").addEventListener("click", onHighlight);
+  $("dictBtn").addEventListener("click", onDict);
+
+  /* ================= settings ================= */
+  function applySettings(){
+    var s = state.settings;
+    document.documentElement.style.setProperty("--reader-size", s.fontSize+"px");
+    document.documentElement.style.setProperty("--reader-font", s.serif ? "var(--serif)" : "var(--sans)");
+    document.body.classList.toggle("dark", s.dark);
+    $("fontToggle").textContent = s.serif ? "无衬线" : "衬线";
+    $("fontToggle").classList.toggle("on", s.serif);
+    $("themeToggle").textContent = s.dark ? "浅色" : "深色";
+    $("themeToggle").classList.toggle("on", s.dark);
+  }
+  function setFont(delta){
+    state.settings.fontSize = Math.min(26, Math.max(15, state.settings.fontSize + delta));
+    saveSettings(); applySettings();
+  }
+
+  /* ================= events ================= */
+  $("importBtn").addEventListener("click", function(){ $("fileInput").click(); });
+  $("fileInput").addEventListener("change", function(e){ importFiles(e.target.files); e.target.value=""; });
+
+  $("shuffleBtn").addEventListener("click", function(){
+    var pool = state.articles;
+    if(!pool.length){ toast("先导入几篇文章吧"); return; }
+    openReader(pool[Math.floor(Math.random()*pool.length)].id);
+  });
+
+  // search / filters 已随首页文章列表移除
+
+  // reader
+  $("backBtn").addEventListener("click", closeReader);
+  $("endBackBtn").addEventListener("click", closeReader);
+  $("nextBtn").addEventListener("click", nextRandom);
+  $("fontUp").addEventListener("click", function(){ setFont(1); });
+  $("fontDown").addEventListener("click", function(){ setFont(-1); });
+  $("fontToggle").addEventListener("click", function(){ state.settings.serif = !state.settings.serif; saveSettings(); applySettings(); });
+  $("themeToggle").addEventListener("click", function(){ state.settings.dark = !state.settings.dark; saveSettings(); applySettings(); });
+
+  // title edit
+  $("readerTitle").addEventListener("blur", function(){
+    var a = state.articles.find(function(x){return x.id===state.currentId;});
+    if(!a) return;
+    var t = $("readerTitle").textContent.trim();
+    if(t && t !== a.title){ a.title = t; save(); }
+  });
+  $("readerTitle").addEventListener("keydown", function(e){
+    if(e.key === "Enter"){ e.preventDefault(); $("readerTitle").blur(); }
+  });
+
+  // scroll progress
+  window.addEventListener("scroll", function(){
+    if($("reader").classList.contains("open")) updateProgress();
+  }, { passive: true });
+
+  // keyboard
+  window.addEventListener("keydown", function(e){
+    if(e.key === "Escape" && $("reader").classList.contains("open")){ closeReader(); }
+  });
+
+  // drag & drop
+  var dragDepth = 0;
+  window.addEventListener("dragenter", function(e){ e.preventDefault(); dragDepth++; $("dropOverlay").classList.add("show"); });
+  window.addEventListener("dragover", function(e){ e.preventDefault(); });
+  window.addEventListener("dragleave", function(e){ e.preventDefault(); dragDepth--; if(dragDepth<=0){ dragDepth=0; $("dropOverlay").classList.remove("show"); } });
+  window.addEventListener("drop", function(e){
+    e.preventDefault(); dragDepth=0; $("dropOverlay").classList.remove("show");
+    if(e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) importFiles(e.dataTransfer.files);
+  });
+
+  /* ================= init ================= */
+  // 迁移：旧默认字号 19 → 17（避免老用户停留在大字号）
+  if(state.settings.fontSize === 19){ state.settings.fontSize = 17; saveSettings(); }
+  applySettings();
+  injectBuiltin();
+  render();
+  if(!storageOk){
+    setTimeout(function(){
+      toast("⚠️ 当前环境无法使用本地存储：文章只在本次打开时有效，建议用浏览器直接打开 http://127.0.0.1:8090/flip-reader.html");
+    }, 300);
+  }
+})();
+</script>
+</body>
+</html>
