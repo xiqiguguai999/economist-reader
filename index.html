@@ -255,6 +255,8 @@
   #parsePanel.show{transform:translateY(0)}
   #selToolbar #parseBtn{display:none}
   #selToolbar #parseBtn.show{display:inline-flex}
+  #selToolbar #vocabBtn{display:none}
+  #selToolbar #vocabBtn.show{display:inline-flex}
 
   /* API 设置弹窗 */
   #keyModal{
@@ -670,6 +672,7 @@
 <!-- 选中浮动工具条 -->
 <div id="selToolbar">
   <button id="hlBtn">划线</button>
+  <button id="vocabBtn">＋生词</button>
   <button id="dictBtn">查字典</button>
   <button id="parseBtn">🧠 解析短语</button>
 </div>
@@ -1635,6 +1638,18 @@
       showExprTip(hit.word, hit.meaning, rect);
     }
   }
+  function onAddVocab(){
+    var text = state.lastSelText || "";
+    text = (text || "").trim();
+    hideSelToolbar();
+    var ctx = state.lastContext || "";
+    state.lastSelText = ""; state.savedRange = null; state.lastContext = "";
+    try { window.getSelection().removeAllRanges(); } catch(e){}
+    if(!text) return;
+    if(!ctx) ctx = findContextByWord(text);
+    var a = currentArticle();
+    addToVocab(text, "", "", a ? a.title : "", ctx);
+  }
   function onDict(){
     var text = state.lastSelText || (window.getSelection() ? window.getSelection().toString() : "");
     text = (text || "").trim();
@@ -1861,17 +1876,19 @@
     var el = $("vocabList");
     var n = state.takeaways.length, m = state.vocab.length;
     $("vocabCount").textContent = n + " 个解析 · " + m + " 个生词";
-    if(!n && !m){
-      el.innerHTML = '<div class="vocab-empty">还没有内容。读文章时：划选短语 →「🧠 解析短语」会存到这里；划选单词 →「划线」会存进生词。</div>';
-      return;
-    }
     el.innerHTML = "";
     // ===== 1. 大脑分析（短语解析记录，已缓存的直接看） =====
-    if(n){
-      var t1 = document.createElement("div");
-      t1.className = "takeaway-section-title";
-      t1.textContent = "🧠 大脑分析";
-      el.appendChild(t1);
+    var t1 = document.createElement("div");
+    t1.className = "takeaway-section-title";
+    t1.textContent = "🧠 大脑分析";
+    el.appendChild(t1);
+    if(!n){
+      var e1 = document.createElement("div");
+      e1.className = "vocab-empty";
+      e1.style.padding = "18px 16px";
+      e1.textContent = "还没有解析记录。读文章时选中含空格的短语，点「🧠 解析短语」就会存到这里。";
+      el.appendChild(e1);
+    } else {
       state.takeaways.forEach(function(t, idx){
         var item = document.createElement("div");
         item.className = "takeaway-item";
@@ -1886,12 +1903,18 @@
         el.appendChild(item);
       });
     }
-    // ===== 2. 生词 =====
-    if(m){
-      var t2 = document.createElement("div");
-      t2.className = "takeaway-section-title";
-      t2.textContent = "📝 生词";
-      el.appendChild(t2);
+    // ===== 2. 生词（始终显示，避免「生词本没了」） =====
+    var t2 = document.createElement("div");
+    t2.className = "takeaway-section-title";
+    t2.textContent = "📝 生词";
+    el.appendChild(t2);
+    if(!m){
+      var empty = document.createElement("div");
+      empty.className = "vocab-empty";
+      empty.style.padding = "18px 16px";
+      empty.textContent = "还没有生词。读文章时选中一个单词，点「＋生词」（或「划线」）就会收进这里。";
+      el.appendChild(empty);
+    } else {
       state.vocab.forEach(function(v, idx){
         var item = document.createElement("div");
         item.className = "vocab-item";
@@ -1980,9 +2003,11 @@
     if(!$("readerBody").contains(range.commonAncestorContainer)){ return; }
     state.lastSelText = text;
     state.savedRange = range.cloneRange();
-    // 选中文字含空格（短语/句子）时，显示「解析短语」按钮
-    var pb = $("parseBtn");
-    if(pb) pb.classList.toggle("show", /\S\s+\S/.test(text));
+    // 含空格（短语/句子）→ 显示「解析短语」；单个词 → 显示「＋生词」
+    var hasSpace = /\S\s+\S/.test(text);
+    var pb = $("parseBtn"), vb = $("vocabBtn");
+    if(pb) pb.classList.toggle("show", hasSpace);
+    if(vb) vb.classList.toggle("show", !hasSpace);
     var rect = range.getBoundingClientRect();
     showSelToolbar(rect);
   });
@@ -2025,7 +2050,7 @@
   });
   $("dictClose").addEventListener("click", closeDict);
   $("parseClose").addEventListener("click", closeParse);
-  ["hlBtn","dictBtn","parseBtn"].forEach(function(id){
+  ["hlBtn","vocabBtn","dictBtn","parseBtn"].forEach(function(id){
     $(id).addEventListener("pointerdown", function(e){
       e.preventDefault();
       // 兜底：部分环境（尤其 iOS）点按钮会先清空选区，这里在清空前先存一份
@@ -2041,6 +2066,7 @@
     $(id).addEventListener("mousedown", function(e){ e.preventDefault(); });
   });
   $("hlBtn").addEventListener("click", onHighlight);
+  $("vocabBtn").addEventListener("click", onAddVocab);
   $("dictBtn").addEventListener("click", onDict);
   $("parseBtn").addEventListener("click", onParse);
   $("keyBtn").addEventListener("click", openKeyModal);
