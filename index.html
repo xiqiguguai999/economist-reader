@@ -1302,6 +1302,7 @@
     state.currentId = id;
     a.lastReadAt = Date.now();
     save();
+    try { localStorage.setItem("flip.last.v1", id); } catch(e){}
 
     $("readerTitle").textContent = a.title;
     $("readerMeta").innerHTML = [
@@ -1339,6 +1340,7 @@
     $("ecoView").classList.remove("open");
     $("library").style.display = "block";
     state.currentId = null;
+    try { localStorage.removeItem("flip.last.v1"); } catch(e){}
     hideSelToolbar();
     closeDict();
     render();
@@ -1896,7 +1898,14 @@
   if(state.settings.fontSize === 19){ state.settings.fontSize = 17; saveSettings(); }
   applySettings();
   injectBuiltin();
-  render();
+  // 刷新后恢复上次阅读的文章（若仍存在）
+  var lastId = null;
+  try { lastId = localStorage.getItem("flip.last.v1"); } catch(e){}
+  if(lastId && state.articles.some(function(a){ return a.id === lastId; })){
+    openReader(lastId);
+  } else {
+    render();
+  }
   // 后台预加载柯林斯词典，查词秒出
   setTimeout(function(){ loadDictCn(); }, 600);
   if(!storageOk){
