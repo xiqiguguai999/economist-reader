@@ -1305,15 +1305,16 @@
   function resolveFeatured(){
     var pool = featuredPool();
     if(!pool.length) return state.featured ? makeFeatured({ id: state.featured.id, title: state.featured.title, text: "", section: "Leaders" }) : null;
-    var chosen = null;
+    // 1. 用户显式选的那篇优先（允许再读已读完的）
     var id = getFeaturedId();
-    if(id) chosen = pool.find(function(a){ return a.id === id; }) || null;
-    // 指定的这篇还没读完 → 用它
-    if(chosen && !chosen.finished) return makeFeatured(chosen);
-    // 否则自动挑下一篇未读完的（按栏目/顺序）
+    if(id){
+      var chosen = pool.find(function(a){ return a.id === id; });
+      if(chosen) return makeFeatured(chosen);
+    }
+    // 2. 否则自动挑下一篇未读完的（按栏目/顺序）
     var unread = pool.filter(function(a){ return !a.finished; });
     if(unread.length) return makeFeatured(unread[0]);
-    // 全读完了 → 回到第一篇
+    // 3. 全读完了 → 回到第一篇
     return makeFeatured(pool[0]);
   }
   function renderFeatured(){
@@ -1582,6 +1583,8 @@
   function closeReader(){
     var a = state.articles.find(function(x){return x.id===state.currentId;});
     if(a) persistProgress(a);
+    // 精选文章读完后清掉显式选择 → 下次回首页自动换下一篇
+    if(a && a.finished && getFeaturedId() === a.id){ saveFeaturedId(""); }
     $("reader").classList.remove("open");
     $("vocabView").classList.remove("open");
     $("ecoView").classList.remove("open");
