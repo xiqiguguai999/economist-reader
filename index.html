@@ -683,7 +683,7 @@
     <label class="key-label">API Key（SiliconFlow）</label>
     <input id="keyInput" type="password" placeholder="sk-..." autocomplete="off" autocapitalize="off" spellcheck="false">
     <label class="key-label">模型</label>
-    <input id="keyModel" type="text" placeholder="Qwen/Qwen2.5-7B-Instruct" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <input id="keyModel" type="text" placeholder="deepseek-ai/DeepSeek-V4-Flash" autocomplete="off" autocapitalize="off" spellcheck="false">
     <div class="key-actions">
       <button id="keySave" class="btn primary">保存</button>
       <button id="keyClose" class="btn ghost">关闭</button>
@@ -1621,9 +1621,9 @@
   }
   function closeDict(){ $("dictPanel").classList.remove("show"); dictCurrent = null; }
   /* ================= 划词解析短语 ================= */
-  var PARSE_SYSTEM_PROMPT = "你是一位英语口语老师。用户划选了一段英文，请用最直白的中文解释整句话的意思。\n1. 固定搭配：直接提炼出里面的固定短语或俚语，并给出中文释义（不要分析主谓宾）。\n2. 整句人话翻译：用符合中文习惯的大白话说出这句话的意思。\n要求回答简短，总字数不超过 100 字，不要废话。";
+  var PARSE_SYSTEM_PROMPT = "你是一位英语精读老师。用户划选了一段英文，请做精读解析，不要只做中文直译。\n按三节输出（Markdown）：\n### 1. 关键短语\n逐个解释最关键的固定搭配/习语/难词，每条写：**英文短语**：中文释义 + 在句中的具体含义/指代（代词指谁、隐喻指什么）。不要逐词拆，不要分析主谓宾。\n### 2. 句式结构\n用 1-2 句说明句子主干（谁 + 做了什么）+ 修饰成分/从句及其作用。\n### 3. 整句意思\n用符合中文习惯的大白话翻译整句。\n要求具体准确，尤其说清指代和隐喻，不要空泛套话；总字数 250 字以内。";
   var PARSE_BASE_URL = "https://api.siliconflow.cn/v1";
-  var PARSE_MODEL = "Qwen/Qwen2.5-7B-Instruct";
+  var PARSE_MODEL = "deepseek-ai/DeepSeek-V4-Flash";
   // 预置的 API Key；用户可在「🔑」里改成自己的
   var PARSE_DEFAULT_KEY = "sk-wmygstyhlcydcafsehbaqzzoznftmbfkumqlcdfssgcxrvib";
   function getParseKey(){
@@ -1664,8 +1664,11 @@
   function parsePhrase(text){
     var apiKey = getParseKey();
     if(!apiKey){ openKeyModal(); toast("请先填写 API Key"); return; }
-    $("parseBody").innerHTML = '<div class="dict-loading">解析中 …</div>';
+    $("parseBody").innerHTML = '<div class="dict-loading">解析中 … 可能需要 5–40 秒，请稍候</div>';
     $("parsePanel").classList.add("show");
+    var ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
+    var timer = null;
+    if(ctrl){ timer = setTimeout(function(){ try{ ctrl.abort(); }catch(e){} }, 60000); }
     fetch(PARSE_BASE_URL + "/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": "Bearer " + apiKey },
@@ -1676,16 +1679,33 @@
           { role: "user", content: text }
         ],
         temperature: 0.3
-      })
+      }),
+      signal: ctrl ? ctrl.signal : undefined
     })
-    .then(function(r){ if(!r.ok) return r.text().then(function(t){ throw new Error("HTTP " + r.status + " " + t.slice(0, 120)); }); return r.json(); })
+    .then(function(r){
+      if(!r.ok){
+        return r.text().then(function(t){
+          var msg = "HTTP " + r.status;
+          try {
+            var j = JSON.parse(t);
+            if(j && j.message) msg = j.message;
+            if(j && (j.code === 30001 || /balance/i.test(j.message || ""))) msg = "账户余额不足，请到硅基流动控制台充值后再试";
+          } catch(e){}
+          throw new Error(msg);
+        });
+      }
+      return r.json();
+    })
     .then(function(d){
+      clearTimeout(timer);
       var content = (d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) || "";
       if(!content.trim()) throw new Error("空结果");
       $("parseBody").innerHTML = renderText(content);
     })
     .catch(function(e){
-      $("parseBody").innerHTML = '<div class="dict-err">解析失败：' + esc(e.message || "网络或 Key 问题") + '</div>';
+      clearTimeout(timer);
+      var msg = (e && e.name === "AbortError") ? "请求超时（模型较慢或网络不稳），请重试" : (e.message || "网络或 Key 问题");
+      $("parseBody").innerHTML = '<div class="dict-err">解析失败：' + esc(msg) + '</div>';
     });
   }
   function loadDictCn(){
